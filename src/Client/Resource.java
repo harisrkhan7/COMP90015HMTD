@@ -1,4 +1,4 @@
-package Server;
+package Client;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -7,10 +7,10 @@ public class Resource {
 	private String Name;
 	private String Description;
 	private String[] Tags;
+	private String uri;
 	private String Channel;
 	private String Owner;
 	private String EzServer;
-	private String uri;
 	
 	public Resource(String owner, String channel, String uri)
 	{
@@ -133,13 +133,22 @@ public class Resource {
         resource.put("channel", this.Channel);
         resource.put("owner", this.Owner);
         resource.put("ezserver", this.EzServer);
+        System.out.println(resource.toJSONString());
 		return resource;
 	}
 	private JSONArray tagsToArrayNode(){
 		JSONArray tags = new JSONArray();
-		for(String x:Tags){
-        	tags.add(x);
-        }
+		if(this.Tags == null)
+		{
+			tags.add(" ");
+		}
+		else{
+			for(String x:Tags){
+	        	tags.add(x);
+	        }			
+		}
+
 		return tags;
 	}
+
 }

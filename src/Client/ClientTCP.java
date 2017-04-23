@@ -1,6 +1,7 @@
 package Client;
 import java.net.*;
 import java.io.*;
+import org.json.simple.JSONObject;
 public class ClientTCP extends Thread {
 	int serverPort;
 	Socket ClientSocket;
@@ -12,19 +13,25 @@ public class ClientTCP extends Thread {
 		
 	}
 	public void run()
-{
-		
-
-	
+	{
 	  try{
-	    ClientSocket = new Socket("localhost", serverPort);
+	    Resource resource =  new Resource(null, null, "test");
+		ClientSocket = new Socket("localhost", serverPort);
 	    System.out.println("Connection Established");
 	    DataInputStream in = new DataInputStream( ClientSocket.getInputStream());
 	    DataOutputStream out =new DataOutputStream( ClientSocket.getOutputStream());
-	    System.out.println("Sending data");
-	    out.writeUTF(message);    
-	    String data = in.readUTF();   // read a line of data from the stream
-	    System.out.println("Received: "+ data) ;
+	    JSONObject newCommand = new JSONObject();
+        newCommand.put("command", "QUERY");
+        newCommand.put("relay", "false");
+        newCommand.put("resource template", resource.toJSON());
+
+		System.out.println(newCommand.toJSONString());
+		
+		// Send RMI to Server
+		out.writeUTF(newCommand.toString());
+		out.flush();
+		
+	    ClientSocket.close();
 	  }catch (UnknownHostException e) {
 	     System.out.println("Socket:"+e.getMessage());
 	  }catch (EOFException e){

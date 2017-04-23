@@ -7,16 +7,19 @@ public class Services {
 	// We need to use hash maps for storing the data. 
 	// I have created the classes for server and resource
 	// Publish method and exchange method developers are free
-	// to choose the primary key for the Hash maps. 
+	// to choose the primary key for the Hash maps.
+	public Services()
+	{
+		ServerList = new ArrayList<Server>();
+		ResourceList = new HashMap<String, Resource>();
+	}
 	public Response publish(Resource toPublish)
 	{
 		return null;
-		
 	}
 	public Response remove(String toRemove)
 	{
 		return null;
-		
 	}
 	public Response share(String secret, Resource toShare)
 	{
@@ -27,13 +30,19 @@ public class Services {
 	{
 		
 	}
-	public void fetch(Resource toFetch)
+	public Resource fetch(Resource toFetch)
 	{
+		return null;
 		
 	}
 	public Response exchange(ArrayList<Server> incomingServerList)
 	{
+		
 		return null;
+		
+	}
+	public void exchange()
+	{
 		
 	}
 	

@@ -1,21 +1,25 @@
 package Server;
 import java.net.*;
-
-
 import java.io.*;
-
+import java.util.Timer;
 public class ServerTCP extends Thread{
 	int serverPort; // the server port
 	ServerSocket listenSocket;
 	Services TCPService;
+	PeriodicExchange exchange;
+	Timer TimedExchange;
 
 	public ServerTCP(int port)
 	{
 		serverPort = port;	
 		TCPService = new Services();
+		exchange = new PeriodicExchange(TCPService);
+		TimedExchange = new Timer();
 	}
 	public void run()
 	{
+		System.out.println("test");
+		TimedExchange.scheduleAtFixedRate(exchange, 10, 60000);
 		try
 		{
 			listenSocket = new ServerSocket(serverPort);
