@@ -3,6 +3,11 @@ package Server;
 public class Server {
 	private String hostName;
 	private int port;
+	public Server(String hostname, int port)
+	{
+		this.hostName = hostname;
+		this.port =  port;
+	}
 	/**
 	 * @return the hostName
 	 */

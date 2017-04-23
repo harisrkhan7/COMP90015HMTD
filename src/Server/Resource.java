@@ -25,6 +25,18 @@ public class Resource {
 			this.Owner = " ";
 		
 	}
+	public Resource(String name, String[] tags,
+		    String description,
+		    String uri, String channel, 
+		    String owner, String ezserver){
+	      this.Name = name;
+	      this.Tags = tags;
+	      this.Description = description;
+	      this.uri = uri;
+	      this.Channel = channel;
+	      this.Owner = owner;
+	      this.EzServer = ezserver;
+	}
 	/**
 	 * @return the name
 	 */

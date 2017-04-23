@@ -31,7 +31,8 @@ public class Connection extends Thread {
 		     if(in.available() > 0){
 		    		// Attempt to convert read data to JSON
 		    		JSONObject command = (JSONObject) parser.parse(in.readUTF());
-		    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());
+		    		
+		    		System.out.println("COMMAND RECEIVED: "+command.get("command"));
 		    	}
 
 //		     System.out.println("server writing data");

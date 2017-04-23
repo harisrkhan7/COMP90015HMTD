@@ -1,9 +1,30 @@
 package Server;
 
+import java.util.ArrayList;
+
 public class Response {
 	private String response;
 	private String errorMessage;
+	private ArrayList<Resource> responseList;
 	
+	public Response(String response, String errorMessage)
+	{
+		this.response = response;
+		this.errorMessage = errorMessage;
+	}
+	public Response()
+	{
+		this.response = null;
+		this.errorMessage = null;
+		this.responseList = null;
+	}
+	public ArrayList<Resource> getResourceList(){
+	      return new ArrayList<Resource>(responseList); // new copy
+	}
+	
+	public void setResourceList(ArrayList<Resource> responseList){
+	      this.responseList = responseList;
+	}
 	/**
 	 * @return the response
 	 */
