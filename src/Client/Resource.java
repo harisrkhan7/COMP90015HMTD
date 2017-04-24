@@ -3,6 +3,8 @@ package Client;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import Server.Server;
+
 public class Resource {
 	private String Name;
 	private String Description;
@@ -10,7 +12,7 @@ public class Resource {
 	private String uri;
 	private String Channel;
 	private String Owner;
-	private String EzServer;
+	private Server EzServer;
 	
 	public Resource(String owner, String channel, String uri)
 	{
@@ -25,6 +27,19 @@ public class Resource {
 			this.Owner = " ";
 		
 	}
+	public Resource(String name, String[] tags,
+		    String description,
+		    String uri, String channel, 
+		    String owner, Server ezserver){
+	      this.Name = name;
+	      this.Tags = tags;
+	      this.Description = description;
+	      this.uri = uri;
+	      this.Channel = channel;
+	      this.Owner = owner;
+	      this.EzServer = ezserver;
+	}
+
 	/**
 	 * @return the name
 	 */
@@ -112,18 +127,18 @@ public class Resource {
 	/**
 	 * @return the ezServer
 	 */
-	public String getEzServer() {
+	public Server getEzServer() {
 		return EzServer;
 	}
 
 	/**
 	 * @param ezServer the ezServer to set
 	 */
-	public void setEzServer(String ezServer) {
+	public void setEzServer(Server ezServer) {
 		EzServer = ezServer;
 	}
 	public JSONObject toJSON(){
-	    JSONObject resource = new JSONObject();
+		JSONObject resource = new JSONObject();
 	    JSONArray tags = new JSONArray();
 	    tags = tagsToArrayNode();
         resource.put("name", this.Name);
@@ -132,8 +147,8 @@ public class Resource {
         resource.put("uri", this.uri);
         resource.put("channel", this.Channel);
         resource.put("owner", this.Owner);
-        resource.put("ezserver", this.EzServer);
-        System.out.println(resource.toJSONString());
+        String serverName = this.EzServer.getHostname()+":"+this.EzServer.getPort();
+        resource.put("ezserver", serverName);
 		return resource;
 	}
 	private JSONArray tagsToArrayNode(){

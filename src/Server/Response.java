@@ -2,6 +2,9 @@ package Server;
 
 import java.util.ArrayList;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 public class Response {
 	private String response;
 	private String errorMessage;
@@ -49,6 +52,12 @@ public class Response {
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
 	}
-	
+	public JSONObject toJSON(){
+	    JSONObject reply = new JSONObject();
+	    reply.put("response", this.response);
+        reply.put("errorMessage", this.errorMessage);
+		return reply;
+	}
+
 	
 }

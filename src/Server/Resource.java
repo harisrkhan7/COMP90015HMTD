@@ -9,7 +9,7 @@ public class Resource {
 	private String[] Tags;
 	private String Channel;
 	private String Owner;
-	private String EzServer;
+	private Server Server;
 	private String uri;
 	
 	public Resource(String owner, String channel, String uri)
@@ -17,7 +17,7 @@ public class Resource {
 		this.Name = null;
 		this.Description = null;
 		this.Tags = null;
-		this.EzServer = null;
+		this.Server = null;
 		this.uri = uri;
 		if(channel == null)
 			this.Channel = " ";
@@ -28,14 +28,14 @@ public class Resource {
 	public Resource(String name, String[] tags,
 		    String description,
 		    String uri, String channel, 
-		    String owner, String ezserver){
+		    String owner, Server ezserver){
 	      this.Name = name;
 	      this.Tags = tags;
 	      this.Description = description;
 	      this.uri = uri;
 	      this.Channel = channel;
 	      this.Owner = owner;
-	      this.EzServer = ezserver;
+	      this.Server = ezserver;
 	}
 	/**
 	 * @return the name
@@ -124,15 +124,15 @@ public class Resource {
 	/**
 	 * @return the ezServer
 	 */
-	public String getEzServer() {
-		return EzServer;
+	public Server getEzServer() {
+		return Server;
 	}
 
 	/**
 	 * @param ezServer the ezServer to set
 	 */
-	public void setEzServer(String ezServer) {
-		EzServer = ezServer;
+	public void setEzServer(Server ezServer) {
+		Server = ezServer;
 	}
 	public JSONObject toJSON(){
 	    JSONObject resource = new JSONObject();
@@ -144,7 +144,7 @@ public class Resource {
         resource.put("uri", this.uri);
         resource.put("channel", this.Channel);
         resource.put("owner", this.Owner);
-        resource.put("ezserver", this.EzServer);
+        resource.put("ezserver", this.Server);
 		return resource;
 	}
 	private JSONArray tagsToArrayNode(){

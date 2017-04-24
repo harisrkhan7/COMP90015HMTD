@@ -27,19 +27,42 @@ public class Connection extends Thread {
 	public void run(){
 		try {           
 			// an echo server
-		     System.out.println("server reading data from client ");
+		    while(true){
 		     if(in.available() > 0){
 		    		// Attempt to convert read data to JSON
-		    		JSONObject command = (JSONObject) parser.parse(in.readUTF());
-		    		
-		    		System.out.println("COMMAND RECEIVED: "+command.get("command"));
+		    	 System.out.println("server reading data from client ");
+		    	 	JSONObject command = (JSONObject) parser.parse(in.readUTF());
+		    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());	
+		    		String commandText;
+		    	 	commandText = command.get("command").toString(); 
+		    	 	if(commandText == null)
+		    	 	{
+		    	 		commandText = " ";
+		    	 	}
+		    	 	switch(commandText)
+		    		{
+		    		case "FETCH": 
+		    			System.out.println("GET COMMAND RECEIVED");
+		    			Response responseget = new Response("success","get command received");
+		    			JSONObject replyget = responseget.toJSON();
+		    			out.writeUTF(replyget.toJSONString());
+		    			break;
+		    		case "QUERY":
+		    			System.out.println("QUERY COMMAND RECEIVED");
+		    			Response reply1 = availableServices.query(false, new Resource(null, null, "test"));
+		    			JSONObject reply12 = reply1.toJSON();
+;		    			out.writeUTF(reply12.toJSONString());
+		    			break;
+		    		default:
+		    			Response response = new Response("error","invalid command");
+		    			JSONObject reply = response.toJSON();
+		    			out.writeUTF(reply.toJSONString());
+		    			System.out.println("default error");
+		    			break;
+		    		}   	
 		    	}
+		    }
 
-//		     System.out.println("server writing data");
-//		     out.writeUTF(data);
-		     synchronized(availableServices){
-		    	 
-		     }
 		  }catch (EOFException e){
 		     System.out.println("EOF:"+e.getMessage());
 		  } catch(IOException e) {

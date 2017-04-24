@@ -1,15 +1,26 @@
 package Client;
 import java.net.*;
 import java.io.*;
+
+import org.apache.commons.cli.CommandLine;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
+import Server.Response;
 public class ClientTCP extends Thread {
 	int serverPort;
 	Socket ClientSocket;
-	String message;
-	ClientTCP(int port, String inpmessage)
+	String clientArgument[];
+	JSONParser parser;
+	ArgumentParser commandParser;
+	ClientTCP(int port, String[] inpmessage)
 	{
 		serverPort = port;
-		this.message = inpmessage;
+		this.clientArgument = inpmessage;
+		parser = new JSONParser();
+		commandParser = new ArgumentParser(clientArgument);
 		
 	}
 	public void run()
@@ -20,19 +31,27 @@ public class ClientTCP extends Thread {
 	    System.out.println("Connection Established");
 	    DataInputStream in = new DataInputStream( ClientSocket.getInputStream());
 	    DataOutputStream out =new DataOutputStream( ClientSocket.getOutputStream());
-	    JSONObject newCommand = new JSONObject();
-        newCommand.put("command", "QUERY");
-        newCommand.put("relay", "false");
-        newCommand.put("resource template", resource.toJSON());
-
-		System.out.println(newCommand.toJSONString());
+	    commandParser.parseInput();
+	    JSONObject newCommand = commandParser.toJSON();
+		//JSONObject newCommand = resource.toJSON();
 		
+	    System.out.println("before sending:"+newCommand.toString());
 		// Send RMI to Server
-		out.writeUTF(newCommand.toString());
+		out.writeUTF(newCommand.toJSONString( ));
 		out.flush();
+		System.out.println("after sending:"+newCommand.toString());
 		
+		String data = in.readUTF();
+    		// Attempt to convert read data to JSON
+    		JSONObject response = (JSONObject) parser.parse(data);
+    		System.out.println(response.toString());
+	
 	    ClientSocket.close();
-	  }catch (UnknownHostException e) {
+	  }catch (ParseException e)
+	     {
+		  System.out.println("Parse:"+e.getMessage());
+	     }
+	  catch (UnknownHostException e) {
 	     System.out.println("Socket:"+e.getMessage());
 	  }catch (EOFException e){
 	     System.out.println("EOF:"+e.getMessage());

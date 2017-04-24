@@ -59,10 +59,17 @@ public class Services {
 		  // do client side operation 
 		  // add the resource returned to the matched
 	    }
-
-	    Response queryResponse = new Response("success", null);
+	      Response queryResponse;
+	      if(matched.isEmpty())
+	    {
+	    	  queryResponse = new Response("error","Object not found");
+	    } 
+	      else
+	      {
+	    queryResponse = new Response("success", null);
 	    queryResponse.setResourceList(matched);
-	    return queryResponse;
+	      }
+	    	  return queryResponse;
 		
 	}
 	public Response fetch(Resource toFetch, DataOutputStream out)
