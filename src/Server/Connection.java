@@ -65,6 +65,11 @@ public class Connection extends Thread {
 		    					new Resource(command,commandText))
 		    					.toJSON();
 		    			break;	
+		    		case "REMOVE":
+		    			System.out.println("REMOVE COMMAND RECEIVED");
+		    			reply = availableServices.remove(new Resource(command,commandText))
+		    					.toJSON();
+		    			break;	
 		    		
 		    		default:
 		    			reply =  new Response(false,"invalid command").toJSON();

@@ -16,6 +16,7 @@ public class Response {
 		else
 			this.response = "error";
 		this.errorMessage = errorMessage;
+		this.responseList = new ArrayList<Resource>();
 	}
 	public Response()
 	{
