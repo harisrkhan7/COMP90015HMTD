@@ -1,5 +1,7 @@
 package Server;
 
+import org.json.simple.JSONObject;
+
 public class Server {
 	private String hostName;
 	private int port;
@@ -7,6 +9,10 @@ public class Server {
 	{
 		this.hostName = hostname;
 		this.port =  port;
+	}
+	public Server(JSONObject toConvert)
+	{
+		toConvert.get("");
 	}
 	/**
 	 * @return the hostName
@@ -29,6 +35,9 @@ public class Server {
 	public String getPortString()
 	{
 		return Integer.toString(port);
+	}
+	public String toString(){
+		return this.hostName+":"+Integer.toString(this.port);
 	}
 	/**
 	 * @param port the port to set

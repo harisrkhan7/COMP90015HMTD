@@ -21,7 +21,7 @@ public class Response {
 	{
 		this.response = null;
 		this.errorMessage = null;
-		this.responseList = null;
+		this.responseList = new ArrayList<Resource>();
 	}
 	public ArrayList<Resource> getResourceList(){
 	      return new ArrayList<Resource>(responseList); // new copy

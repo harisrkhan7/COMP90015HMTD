@@ -36,37 +36,47 @@ public class Connection extends Thread {
 		    	 System.out.println("server reading data from client ");
 		    	 	JSONObject command = (JSONObject) parser.parse(in.readUTF());
 		    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());		
-		  		if(verify.checkCommand(command))
+		    		JSONObject reply = null;
+		    		if(verify.checkCommand(command))
 		  		{
-		  			switch(command.get("command").toString())
+		    			String commandText = command.get("command").toString();
+		    			
+		  			switch(commandText)
 		    		{
 		    		case "FETCH": 
 		    			System.out.println("FETCH COMMAND RECEIVED");
-		    			Response responseget = new Response(true,"Fetch command received");
-		    			JSONObject replyget = responseget.toJSON();
-		    			out.writeUTF(replyget.toJSONString());
+		    			reply = availableServices.fetch(new Resource(command,commandText), out)
+		    					.toJSON();
 		    			break;
 		    		case "QUERY":
 		    			System.out.println("QUERY COMMAND RECEIVED");
-		    			Response reply1 = availableServices.query(false, new Resource(null, null, "test"));
-		    			JSONObject reply12 = reply1.toJSON();
-;		    			out.writeUTF(reply12.toJSONString());
+		    			reply = availableServices.
+		    					query(false, new Resource(command,commandText))
+		    					.toJSON();
 		    			break;
+		    		case "PUBLISH":
+		    			System.out.println("PUBLISH COMMAND RECEIVED");
+		    			reply = availableServices.publish(new Resource(command,commandText))
+		    					.toJSON();
+		    			break;	
+		    		case "SHARE":
+		    			System.out.println("SHARE COMMAND RECEIVED");
+		    			reply = availableServices.share(command.get("secret").toString(),
+		    					new Resource(command,commandText))
+		    					.toJSON();
+		    			break;	
+		    		
 		    		default:
-		    			Response response = new Response(false,"invalid command");
-		    			JSONObject reply = response.toJSON();
-		    			out.writeUTF(reply.toJSONString());
+		    			reply =  new Response(false,"invalid command").toJSON();
 		    			break;
-		    		}
-		  			
+		    		}	
 		  		}
 		  		else
 		  		{
-		  			Response response = new Response(false,"Command missing");
-		  			JSONObject reply = response.toJSON();
-		  			out.writeUTF(reply.toJSONString());
+		  			reply = new Response(false,"Command missing").toJSON();
 		  			break;
 		  		}
+		  		out.writeUTF(reply.toJSONString());
 		    	}
 		    }
 
@@ -76,7 +86,10 @@ public class Connection extends Thread {
 		     System.out.println("readline:"+e.getMessage());
 		  } catch(ParseException e){
 			  System.out.println("Parse: " + e.getMessage());
-		  }
+		  } catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		finally{
 		    try {
 		      clientSocket.close();

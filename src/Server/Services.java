@@ -5,11 +5,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
@@ -18,18 +19,54 @@ import org.json.simple.JSONObject;
 public class Services {
 	private ArrayList<Server> ServerList;
 	private HashMap<String, Resource> ResourceList;
-	// We need to use hash maps for storing the data. 
-	// I have created the classes for server and resource
-	// Publish method and exchange method developers are free
-	// to choose the primary key for the Hash maps.
+	private String secret;
+	/**
+	 * @return the serverList
+	 */
+	public ArrayList<Server> getServerList() {
+		return ServerList;
+	}
+	/**
+	 * @param serverList the serverList to set
+	 */
+	public void setServerList(ArrayList<Server> serverList) {
+		ServerList = serverList;
+	}
+	/**
+	 * @return the resourceList
+	 */
+	public HashMap<String, Resource> getResourceList() {
+		return ResourceList;
+	}
+	/**
+	 * @param resourceList the resourceList to set
+	 */
+	public void setResourceList(HashMap<String, Resource> resourceList) {
+		ResourceList = resourceList;
+	}
+	/**
+	 * @return the secret
+	 */
+	public String getSecret() {
+		return secret;
+	}
+	/**
+	 * @param secret the secret to set
+	 */
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}
 	public Services()
 	{
+		this.secret ="davisisGood";
 		ServerList = new ArrayList<Server>();
 		ResourceList = new HashMap<String, Resource>();
+		
 	}
-	public Response publish(Resource toPublish)
+	public Response publish(Resource toPublish) throws URISyntaxException
 	{
-		return null;
+		Response response = responseCheck("publish",toPublish,"");		
+		return response;
 	}
 	public Response remove(Resource toRemove)
 	{
@@ -47,13 +84,119 @@ public class Services {
 		return response;
 
 	}
-	public Response share(String secret, Resource toShare)
+	public Response share(String secret, Resource toShare) throws URISyntaxException
 	{
-		return null;
+		Response response = responseCheck("share",toShare,secret);		
+		return response;
 		
 	}
+	
+	public Response responseCheck(String command, Resource res, String secretShare) throws URISyntaxException{
+		Response response = new Response();
+		
+		if(!command.equals("share") && res==null){	//1.if no resource and not share command
+			return  new Response(false, "missing resource");
+		}		
+		if(( res.getUri()==null) || (res.getEzServer()==null) || res.getOwner().equals("*") ){	//2.if incorrect resource info
+			return  new Response(false, "invalid resource");
+		}
+		switch (command) {
+		case "publish":
+			System.out.println("Command Publish!!");
+			String OCU = res.getOwner()+res.getChannel()+res.getUri();
+			String CU = res.getChannel()+res.getUri();
+			List<String> l = new ArrayList<String>(ResourceList.keySet());
+			for(String listItem : l){
+			   if(listItem.contains(CU)){		//contain channel and uri
+			      if(!listItem.contains(OCU)){	//not the same owner, rule broken
+					response.setResponse("error");	
+					response.setErrorMessage("cannot publish resource");
+					return response;
+			      }
+			   }
+			}
+		    
+			URI uri = new URI(res.getUri());
+			boolean uriAbs = uri.isAbsolute();
+			if(res.getUri().contains("file") || !uriAbs){		//if URI contains file or relative address, rule broken
+				response.setResponse("error");	//other exception situations
+				response.setErrorMessage("cannot publish resource");
+				return response;
+			}else{													//if all correct 
+				ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);	
+				response.setResponse("success");
+				
+				for (String name: ResourceList.keySet()){
+		            String key =name.toString();
+		            String value = ResourceList.get(name).toString();  
+		            System.out.println(key + " " + value);  
+				} 
+				
+				return response;				
+			}
+//			break;
+		case "share":		
+			System.out.println("Command Share!!");
+			String OCUs = res.getOwner()+res.getChannel()+res.getUri();
+			String CUs = res.getChannel()+res.getUri();
+			List<String> ls = new ArrayList<String>(ResourceList.keySet());
+			for(String listItem : ls){
+			   if(listItem.contains(CUs)){		//contain channel and uri
+			      if(!listItem.contains(OCUs)){	//not the same owner, rule broken
+					response.setResponse("error");	
+					response.setErrorMessage("cannot share resource");
+					return response;
+			      }
+			   }
+			}
+			
+			if(secret.equals("") || res==null){	//1.if no secret or resource
+				response.setResponse("error");
+				response.setErrorMessage("missing resource and\\/or secret");
+				return response;
+			}			
+//			if(Arrays.binarySearch(SecretList, secret) == 0){	//if secret is not in the list
+			if(!secret.equals(secretShare)){	//if secret is not in the list
+				response.setResponse("error");
+				response.setErrorMessage("incorrect secret");
+				return response;
+			}
+			if(res.getUri().contains("file")){	//if all correct
+				ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);	
+				response.setResponse("success");
+				return response;
+			}else{ 		//if rule broken
+				response.setResponse("error");	//other exception situations
+				response.setErrorMessage("cannot share resource");
+				return response;
+			}
+//			break;
+        case "remove":
+            String key=res.getOwner()+res.getChannel()+res.getUri();
+            if(!ResourceList.containsKey(key)) { //Resource did not exist
+                response.setResponse("error");
+                response.setErrorMessage("cannot remove resource");
+                return response;
+            }
+            if(ResourceList.remove(key)!=null){//resource removed
+            	response.setResponse("success");
+            	return response;
+            }
+            break;	
+		default:
+			break;
+		}	
+
+		response.setResponse("error");	//other exception situations
+		response.setErrorMessage("exception!!");
+		return response;
+	}
+	
+	
 	public Response query(Boolean relay, Resource toQuery)
 	{
+		printResourceList();
+		toQuery.toJSON().toString();
 		ArrayList<Resource> matched = getEntry(ResourceList, toQuery);
 	      if(relay){
 		  // do client side operation 
@@ -194,8 +337,8 @@ public class Services {
 	// Compare if the tags in resource 2 contains all tags in resource 1
 
 	public static boolean matchTags(Resource res1, Resource res2){
-	      String[] tagList1 = res1.getTags();
-	      String[] tagList2 = res2.getTags();
+	      ArrayList<String> tagList1 = res1.getTags();
+	      ArrayList<String> tagList2 = res2.getTags();
 	      boolean abort = false;
 	      for (String tag : tagList1){
 		    if (!containString(tag,tagList2)) abort = true;
@@ -209,8 +352,8 @@ public class Services {
 	// supporting method for comparing the resources
 	// This method check whether an array "list" contain 
 	// string "check" while being case insensitive
-	public static boolean containString(String check,String[] list){
-	      for (String str : list){
+	public static boolean containString(String check,ArrayList<String> tagList2){
+	      for (String str : tagList2){
 		    if (check.equalsIgnoreCase(str)){
 			  return true;
 		    }
@@ -231,6 +374,16 @@ public class Services {
 	      if (resName.toLowerCase().contains(templateName)) match = true;
 	      if (resDesc.toLowerCase().contains(templateDesc)) match = true;
 	      return match;
+	}
+	void printResourceList()
+	{
+		for (Map.Entry <String,Resource> entry : ResourceList.entrySet()){
+			String key = entry.getKey();
+			Resource r = entry.getValue();
+			System.out.println("Key is " + key);
+			System.out.println("Resource is " + r.toJSON().toString());
+		}
+				
 	}
 
 }

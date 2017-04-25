@@ -1,17 +1,34 @@
 package Server;
 
+import java.util.ArrayList;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 public class Resource {
 	private String Name;
 	private String Description;
-	private String[] Tags;
+	private ArrayList<String> Tags;
 	private String Channel;
 	private String Owner;
 	private Server Server;
 	private String uri;
-	
+	private JSONObject toConvert;
+	public Resource(JSONObject objConvert, String cmd)
+	{
+		updateToConvert(objConvert, cmd);
+//		System.out.println(toConvert.toString());
+		this.Name = getParameter("name");
+		this.Description = getParameter("description");
+		this.Tags = new ArrayList<String>();
+		this.Channel = getParameter("channel");
+		this.Owner = getParameter("owner");
+//		this.Server = toConvert.get("server").toString();
+		this.Server = new Server("localhost",123);
+		this.uri = getParameter("uri");
+		removeWhiteSpaces();
+		
+	}
 	public Resource(String owner, String channel, String uri)
 	{
 		this.Name = null;
@@ -25,7 +42,7 @@ public class Resource {
 			this.Owner = " ";
 		
 	}
-	public Resource(String name, String[] tags,
+	public Resource(String name, ArrayList<String> tags,
 		    String description,
 		    String uri, String channel, 
 		    String owner, Server ezserver){
@@ -36,6 +53,25 @@ public class Resource {
 	      this.Channel = channel;
 	      this.Owner = owner;
 	      this.Server = ezserver;
+	}
+	void updateToConvert(JSONObject objConvert, String cmd)
+	{
+		if(cmd == "PUBLISH"|| cmd == "SHARE" || cmd == "REMOVE"){
+			toConvert = (JSONObject) objConvert.get("resource");
+		}
+		else{
+			toConvert = (JSONObject) objConvert.get("resource");
+		}
+	}
+	public String getParameter(String cmd)
+	{
+		try{
+		return (toConvert.get(cmd).toString());
+		}
+		catch(NullPointerException e)
+		{
+			return "";
+		}
 	}
 	/**
 	 * @return the name
@@ -82,14 +118,14 @@ public class Resource {
 	/**
 	 * @return the tags
 	 */
-	public String[] getTags() {
+	public ArrayList<String> getTags() {
 		return Tags;
 	}
 
 	/**
 	 * @param tags the tags to set
 	 */
-	public void setTags(String[] tags) {
+	public void setTags(ArrayList<String> tags) {
 		Tags = tags;
 	}
 
@@ -153,5 +189,25 @@ public class Resource {
         	tags.add(x);
         }
 		return tags;
+	}
+	public void removeWhiteSpaces(){
+		this.Channel.trim();
+		this.Channel.replaceAll("\0", "");
+		this.Description.trim();
+		this.Description.replaceAll("\0", "");
+		this.Server.setHostname(this.Server.getHostname().trim());
+		this.Server.setHostname(this.Server.getHostname().replaceAll("\0", ""));
+		this.Name.trim();
+		this.Name.replaceAll("\0", "");
+		this.Owner.trim();
+		this.Owner.replaceAll("\0", "");
+		this.uri.trim();
+		this.uri.replaceAll("\0", "");
+		for(String s:this.Tags)
+		{
+			s.trim();
+			s.replaceAll("\0", "");
+		}
+//		System.out.println("white space cleaned");
 	}
 }

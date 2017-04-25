@@ -147,8 +147,7 @@ public class Resource {
         resource.put("uri", this.uri);
         resource.put("channel", this.Channel);
         resource.put("owner", this.Owner);
-        String serverName = this.EzServer.getHostname()+":"+this.EzServer.getPort();
-        resource.put("ezserver", serverName);
+        resource.put("ezserver", this.EzServer.toString());
 		return resource;
 	}
 	private JSONArray tagsToArrayNode(){

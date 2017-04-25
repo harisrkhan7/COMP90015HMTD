@@ -173,7 +173,7 @@ public class ArgumentParser {
 		case "REMOVE":
 			JSONObject psr = tempResource.toJSON(); 
 			tempJSONObject.put("resource", psr);
-			
+			break;
 		case "QUERY":
 		case "FETCH":
 			JSONObject qf = tempResource.toJSON(); 
@@ -186,6 +186,11 @@ public class ArgumentParser {
 		default:
 			
 			break;
+		}
+		if(command.equals("SHARE"))
+		{
+			String secret = commandLine.getOptionValue("secret");
+			tempJSONObject.put("secret", secret);		
 		}
 		
 		return tempJSONObject;

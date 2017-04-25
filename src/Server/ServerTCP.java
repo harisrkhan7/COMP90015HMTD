@@ -1,7 +1,6 @@
 package Server;
 import java.net.*;
 import java.io.*;
-import java.util.HashMap;
 import java.util.Timer;
 public class ServerTCP extends Thread{
 	int serverPort; // the server port

@@ -36,4 +36,7 @@ public class Server {
 	public void setPort(int port) {
 		this.port = port;
 	}
+	public String toString(){
+		return this.hostName+":"+Integer.toString(this.port);
+	}
 }
