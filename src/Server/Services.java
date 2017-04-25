@@ -38,10 +38,10 @@ public class Services {
 		//Response response
 		if(ResourceList.containsKey(key)){
 				ResourceList.remove(key);
-				response=new Response("success", null);
+				response=new Response(true, null);
 			}
 		else{
-			response = new Response("error","cannot remove resource");
+			response = new Response(false,"cannot remove resource");
 		}
 			
 		return response;
@@ -62,11 +62,11 @@ public class Services {
 	      Response queryResponse;
 	      if(matched.isEmpty())
 	    {
-	    	  queryResponse = new Response("error","Object not found");
+	    	  queryResponse = new Response(false,"Object not found");
 	    } 
 	      else
 	      {
-	    queryResponse = new Response("success", null);
+	    queryResponse = new Response(true, null);
 	    queryResponse.setResourceList(matched);
 	      }
 	    	  return queryResponse;
@@ -105,10 +105,10 @@ public class Services {
 	                for(Server x:incomingServerList){
 	                    ServerList.add(new Server(x.getHostname(),x.getPort()));
 	                }
-	                response=new Response("success", null);
+	                response=new Response(true, null);
 	            }
 	            else{
-	                response=new Response("error","missing or invalid server list");
+	                response=new Response(false,"missing or invalid server list");
 	            }
 	       
 	        return response;	

@@ -9,10 +9,12 @@ public class Response {
 	private String response;
 	private String errorMessage;
 	private ArrayList<Resource> responseList;
-	
-	public Response(String response, String errorMessage)
+	public Response(boolean response, String errorMessage)
 	{
-		this.response = response;
+		if(response == true)
+			this.response = "success";
+		else
+			this.response = "error";
 		this.errorMessage = errorMessage;
 	}
 	public Response()
@@ -52,12 +54,35 @@ public class Response {
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
 	}
+	
 	public JSONObject toJSON(){
 	    JSONObject reply = new JSONObject();
-	    reply.put("response", this.response);
-        reply.put("errorMessage", this.errorMessage);
+	    JSONObject resourceObject = null;
+	    switch(response)
+	    {
+	    case "success": 
+	    	reply.put("response", "success");
+	    	if(responseList.isEmpty() == false)
+	    	{
+	    		int iterator = 0;
+	    		for(Resource s:responseList)
+	    		{
+	    			iterator++;
+	    			JSONObject tempObject = s.toJSON();
+	    			reply.put(Integer.toString(iterator), tempObject);
+	    		
+	    		}
+	    		reply.put("resultSize", Integer.toString(iterator));
+	    		
+	    	}
+	    	break;
+	    case "error":
+	    	reply.put("response", this.errorMessage);
+	    break;
+	    case "default":
+	    	break;
+	    }
 		return reply;
 	}
-
 	
 }

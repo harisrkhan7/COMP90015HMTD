@@ -55,7 +55,7 @@ public class ArgumentParser {
 	    options.addOption(fetch);
 	    
 	    Option host = new Option("host", true,"server host, a domain name or IP address");
-	    host.setRequired(false);
+	    host.setRequired(true);
 	    host.setArgName("SERVER NAME AS STRING");
 	    options.addOption(host);
 	    
@@ -70,7 +70,7 @@ public class ArgumentParser {
 	    options.addOption(owner);
 	    
 	    Option port = new Option("port", true ,"server port, an integer");
-	    port.setRequired(false);
+	    port.setRequired(true);
 	    port.setArgName("INT");
 	    options.addOption(port);
 	    
@@ -101,14 +101,18 @@ public class ArgumentParser {
 	    options.addOption(share);
 	    
 	    Option tags = Option.builder("tags")
+	    		.desc("resource tags, tag1, tag2, tag3,...")
 			.hasArgs()
 			.valueSeparator(',')
 			.build();
 	    options.addOption(tags);
 	    
 	    Option uri = new Option("uri", true,"resource URI");
+	    uri.setDescription("resource URI");
 	    uri.setRequired(false);
 	    options.addOption(uri);
+	    
+	    
 	    	    
 	    
 	    CommandLineParser commandLineParser = new DefaultParser();
