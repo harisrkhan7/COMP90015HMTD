@@ -161,11 +161,13 @@ public class Services {
 				response.setErrorMessage("incorrect secret");
 				return response;
 			}
+			System.out.println(res.getUri());
 			if(res.getUri().contains("file")){	//if all correct
 				ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);	
 				response.setResponse("success");
 				return response;
-			}else{ 		//if rule broken
+			}else{ 	
+				System.out.println("rule broken");//if rule broken
 				response.setResponse("error");	//other exception situations
 				response.setErrorMessage("cannot share resource");
 				return response;

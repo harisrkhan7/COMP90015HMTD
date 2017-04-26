@@ -40,12 +40,25 @@ public class ClientTCP extends Thread {
 		out.writeUTF(newCommand.toJSONString( ));
 		out.flush();
 		System.out.println("after sending:"+newCommand.toString());
-		
+
 		String data = in.readUTF();
+		System.out.println("Parsing");
+		System.out.println(data);
     		// Attempt to convert read data to JSON
     		JSONObject response = (JSONObject) parser.parse(data);
     		System.out.println(response.toString());
-	
+    		System.out.println("Parsed");
+    		System.out.println(response.toString());
+    		
+    		String data1 = in.readUTF();
+    		System.out.println("Parsing");
+    		System.out.println(data1);
+        		// Attempt to convert read data to JSON
+        		JSONObject response1 = (JSONObject) parser.parse(data1);
+        		System.out.println(response.toString());
+        		System.out.println("Parsed");
+        		System.out.println(response.toString());
+
 	    ClientSocket.close();
 	  }catch (ParseException e)
 	     {

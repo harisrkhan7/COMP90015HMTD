@@ -56,12 +56,14 @@ public class Resource {
 	}
 	void updateToConvert(JSONObject objConvert, String cmd)
 	{
-		if(cmd == "PUBLISH"|| cmd == "SHARE" || cmd == "REMOVE"){
+		if(cmd.equals("PUBLISH")|| cmd.equals("SHARE") || cmd.equals("REMOVE")){
 			toConvert = (JSONObject) objConvert.get("resource");
+			System.out.println(cmd);
 		}
 		else{
-			toConvert = (JSONObject) objConvert.get("resource");
+			toConvert = (JSONObject) objConvert.get("resourceTemplate");
 		}
+		
 	}
 	public String getParameter(String cmd)
 	{
@@ -185,9 +187,12 @@ public class Resource {
 	}
 	private JSONArray tagsToArrayNode(){
 		JSONArray tags = new JSONArray();
+		if(tags.isEmpty()==false)
+		{
 		for(String x:Tags){
         	tags.add(x);
         }
+		}
 		return tags;
 	}
 	public void removeWhiteSpaces(){

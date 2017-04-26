@@ -59,23 +59,11 @@ public class Response {
 	public JSONObject toJSON(){
 	    JSONObject reply = new JSONObject();
 	    JSONObject resourceObject = null;
+	    JSONArray resources = new JSONArray();
 	    switch(response)
 	    {
 	    case "success": 
 	    	reply.put("response", "success");
-	    	if(responseList.isEmpty() == false)
-	    	{
-	    		int iterator = 0;
-	    		for(Resource s:responseList)
-	    		{
-	    			iterator++;
-	    			JSONObject tempObject = s.toJSON();
-	    			reply.put(Integer.toString(iterator), tempObject);
-	    		
-	    		}
-	    		reply.put("resultSize", Integer.toString(iterator));
-	    		
-	    	}
 	    	break;
 	    case "error":
 	    	reply.put("response", this.errorMessage);
@@ -85,5 +73,32 @@ public class Response {
 	    }
 		return reply;
 	}
-	
+	public boolean responseListIsEmpty()
+	{
+		return responseList.isEmpty();
+	}
+	public ArrayList<JSONObject>getResponseListToJSON()
+	{
+		ArrayList<JSONObject> jsonResponseList = new ArrayList<JSONObject>();
+		if(responseList.isEmpty() == false)
+    	{
+    		int iterator = 0;
+    		for(Resource s:responseList)
+    		{
+    			iterator++;
+    			JSONObject tempObject = s.toJSON();
+    			jsonResponseList.add(tempObject);
+    		}
+    	}
+
+		return jsonResponseList;
+		
+	}
+	public void printList()
+	{
+		for(Resource s:responseList)
+		{
+			System.out.println(s.toString());
+		}
+	}
 }
