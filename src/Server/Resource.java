@@ -17,13 +17,11 @@ public class Resource {
 	public Resource(JSONObject objConvert, String cmd)
 	{
 		updateToConvert(objConvert, cmd);
-//		System.out.println(toConvert.toString());
 		this.Name = getParameter("name");
 		this.Description = getParameter("description");
-		this.Tags = new ArrayList<String>();
+		this.Tags = getArrayList("tags");
 		this.Channel = getParameter("channel");
 		this.Owner = getParameter("owner");
-//		this.Server = toConvert.get("server").toString();
 		this.Server = new Server("localhost",123);
 		this.uri = getParameter("uri");
 		removeWhiteSpaces();
@@ -57,14 +55,18 @@ public class Resource {
 	void updateToConvert(JSONObject objConvert, String cmd)
 	{
 		if(cmd.equals("PUBLISH")|| cmd.equals("SHARE") || cmd.equals("REMOVE")){
+			System.out.println(objConvert.toJSONString()+ "before get update to convert");
 			toConvert = (JSONObject) objConvert.get("resource");
-			System.out.println(cmd);
+			System.out.println(toConvert.toString()+ "update to convertIf after update");
 		}
 		else{
+			System.out.println(objConvert.toString()+"argument");
 			toConvert = (JSONObject) objConvert.get("resourceTemplate");
+			System.out.println(toConvert.toString()+"update to convert else");
 		}
 		
 	}
+
 	public String getParameter(String cmd)
 	{
 		try{
@@ -174,26 +176,41 @@ public class Resource {
 	}
 	public JSONObject toJSON(){
 	    JSONObject resource = new JSONObject();
-	    JSONArray tags = new JSONArray();
-	    tags = tagsToArrayNode();
+	    JSONArray tags = tagsToArrayNode();
         resource.put("name", this.Name);
         resource.put("tags", tags);
         resource.put("description", this.Description);
         resource.put("uri", this.uri);
         resource.put("channel", this.Channel);
         resource.put("owner", this.Owner);
-        resource.put("ezserver", this.Server);
+        resource.put("ezserver", this.Server.toString());
 		return resource;
 	}
+	private ArrayList<String> getArrayList(String label)
+	{
+		ArrayList<String> returnList = new ArrayList<String>();
+			if(toConvert.containsKey(label))
+			{
+				JSONArray list =  (JSONArray) toConvert.get(label);
+				Object testlist[] = list.toArray();
+				for(int i = 0;i<testlist.length;i++)
+				{
+					returnList.add(testlist[i].toString());
+				
+				}
+			}
+			return returnList;
+	}
 	private JSONArray tagsToArrayNode(){
-		JSONArray tags = new JSONArray();
-		if(tags.isEmpty()==false)
+		JSONArray returnList = new JSONArray();
+		if(Tags.isEmpty()==false)
 		{
 		for(String x:Tags){
-        	tags.add(x);
+        	returnList.add(x);
         }
 		}
-		return tags;
+		System.out.println(returnList.toString()+" in tagstoArrayNode ");
+		return returnList;
 	}
 	public void removeWhiteSpaces(){
 		this.Channel.trim();

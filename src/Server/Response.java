@@ -66,7 +66,8 @@ public class Response {
 	    	reply.put("response", "success");
 	    	break;
 	    case "error":
-	    	reply.put("response", this.errorMessage);
+	    	reply.put("response", "error");
+	    	reply.put("message", this.errorMessage);
 	    break;
 	    case "default":
 	    	break;

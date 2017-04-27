@@ -15,50 +15,33 @@ public class ClientTCP extends Thread {
 	String clientArgument[];
 	JSONParser parser;
 	ArgumentParser commandParser;
+	DataInputStream in;
+	DataOutputStream out;
 	ClientTCP(int port, String[] inpmessage)
 	{
+		try{
 		serverPort = port;
 		this.clientArgument = inpmessage;
 		parser = new JSONParser();
 		commandParser = new ArgumentParser(clientArgument);
-		
+		ClientSocket = new Socket("localhost", serverPort);
+	    System.out.println("Connection Established");
+	    in = new DataInputStream( ClientSocket.getInputStream());
+	    out =new DataOutputStream( ClientSocket.getOutputStream());
+		}catch(IOException e){}
 	}
 	public void run()
 	{
 	  try{
-	    Resource resource =  new Resource(null, null, "test");
-		ClientSocket = new Socket("localhost", serverPort);
-	    System.out.println("Connection Established");
-	    DataInputStream in = new DataInputStream( ClientSocket.getInputStream());
-	    DataOutputStream out =new DataOutputStream( ClientSocket.getOutputStream());
-	    commandParser.parseInput();
-	    JSONObject newCommand = commandParser.toJSON();
-		//JSONObject newCommand = resource.toJSON();
-		
-	    System.out.println("before sending:"+newCommand.toString());
-		// Send RMI to Server
-		out.writeUTF(newCommand.toJSONString( ));
-		out.flush();
-		System.out.println("after sending:"+newCommand.toString());
-
-		String data = in.readUTF();
-		System.out.println("Parsing");
-		System.out.println(data);
-    		// Attempt to convert read data to JSON
-    		JSONObject response = (JSONObject) parser.parse(data);
-    		System.out.println(response.toString());
-    		System.out.println("Parsed");
-    		System.out.println(response.toString());
-    		
-    		String data1 = in.readUTF();
-    		System.out.println("Parsing");
-    		System.out.println(data1);
-        		// Attempt to convert read data to JSON
-        		JSONObject response1 = (JSONObject) parser.parse(data1);
-        		System.out.println(response.toString());
-        		System.out.println("Parsed");
-        		System.out.println(response.toString());
-
+		  
+	    JSONObject response;
+		boolean wait = false;
+		String replyResponse = null;
+		String commandText = parseAndSend();
+		response = getFirstResponse();
+		replyResponse = response.get("response").toString();
+    		wait = (checkCommand(commandText, replyResponse));
+    		waitForNextMessage(wait);
 	    ClientSocket.close();
 	  }catch (ParseException e)
 	     {
@@ -77,5 +60,54 @@ public class ClientTCP extends Thread {
 	       System.out.println("close:"+e.getMessage());
 	     }
 	  }
+	  
 }
+	boolean checkCommand(String command, String response)
+	  {
+		return (response.equals("success") && command.equals("QUERY"));
+	  }
+	JSONObject getFirstResponse() 
+	{
+		JSONObject response = null;
+		try{
+		String data = in.readUTF();
+		// Attempt to convert read data to JSON
+		response = (JSONObject) parser.parse(data);
+		System.out.println(response.toString());
+		}catch(IOException e){}
+		catch(ParseException e){}
+		return response;
+		
+	}
+	String parseAndSend()
+	{
+		commandParser.parseInput();
+	    JSONObject newCommand = commandParser.toJSON();
+	    String commandText = newCommand.get("command").toString();
+	    String data;
+		try {
+			out.writeUTF(newCommand.toJSONString( ));
+			out.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return commandText;
+		
+	}
+	void waitForNextMessage(boolean wait) throws ParseException, IOException{
+		JSONObject response = new JSONObject();
+		String data;
+		if(wait)
+		{
+			do
+		{
+			data = in.readUTF();
+    		// Attempt to convert read data to JSON
+    		response = (JSONObject) parser.parse(data);
+    		System.out.println(response.toString());
+    		
+		}while(response.containsKey("resultSize") == false);
+		}
+	}
 }
