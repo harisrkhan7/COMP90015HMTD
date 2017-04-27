@@ -10,10 +10,10 @@ public class RequestCheck {
 	private long connectionInterval;
 	private HashMap<InetAddress,Long> connectedClients;
 
-	RequestCheck()
+	RequestCheck(int interval)
 	{
 		connectedClients = new HashMap<InetAddress,Long>();
-		connectionInterval = 10000;
+		connectionInterval = interval;
 	}
 	public boolean verifyClient(Socket clientSocket)
 	{

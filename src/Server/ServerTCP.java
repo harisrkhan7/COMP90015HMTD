@@ -9,18 +9,25 @@ public class ServerTCP extends Thread{
 	PeriodicExchange exchange;
 	Timer TimedExchange;
 	RequestCheck checkRequest;
-	public ServerTCP(int port)
+	int exchangeInterval;
+	InetAddress hostname;
+	public ServerTCP(ServerCommands command)
 	{
-		serverPort = port;	
-		TCPService = new Services();
+		boolean debug = command.debug;
+		exchangeInterval = command.getExchangeInterval();
+		int connectionInterval = command.getConnectionInterval();
+		String secret = command.getSecret();
+		hostname = command.getAdvertisedHostName();
+		serverPort = command.getPort();
+		TCPService = new Services(secret);
 		exchange = new PeriodicExchange(TCPService);
 		TimedExchange = new Timer();
-		checkRequest = new RequestCheck();
+		checkRequest = new RequestCheck(connectionInterval);
 	}
 	public void run()
 	{
 		System.out.println("Server Running");
-		TimedExchange.scheduleAtFixedRate(exchange, 10, 60000);
+		TimedExchange.scheduleAtFixedRate(exchange, 10, exchangeInterval);
 		try
 		{
 			listenSocket = new ServerSocket(serverPort);

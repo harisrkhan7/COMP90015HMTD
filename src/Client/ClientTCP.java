@@ -14,20 +14,19 @@ public class ClientTCP extends Thread {
 	Socket ClientSocket;
 	String clientArgument[];
 	JSONParser parser;
-	ArgumentParser commandParser;
 	DataInputStream in;
 	DataOutputStream out;
-	ClientTCP(int port, String[] inpmessage)
+	JSONObject newCommand;
+	ClientTCP(JSONObject cmd)
 	{
 		try{
-		serverPort = port;
-		this.clientArgument = inpmessage;
-		parser = new JSONParser();
-		commandParser = new ArgumentParser(clientArgument);
+		this.serverPort = 3345;
+		this.newCommand = cmd;
+		this.parser = new JSONParser();
 		ClientSocket = new Socket("localhost", serverPort);
 	    System.out.println("Connection Established");
-	    in = new DataInputStream( ClientSocket.getInputStream());
-	    out =new DataOutputStream( ClientSocket.getOutputStream());
+	    this.in = new DataInputStream( ClientSocket.getInputStream());
+	    this.out =new DataOutputStream( ClientSocket.getOutputStream());
 		}catch(IOException e){}
 	}
 	public void run()
@@ -53,7 +52,10 @@ public class ClientTCP extends Thread {
 	     System.out.println("EOF:"+e.getMessage());
 	  }catch (IOException e){
 	     System.out.println("readline:"+e.getMessage());
-	  }finally {
+	  }catch(NullPointerException e){
+		  System.out.println("Server not found");
+	  }
+	  finally {
 	     if(ClientSocket!=null) try {
 	       ClientSocket.close();
 	     }catch (IOException e){
@@ -64,9 +66,9 @@ public class ClientTCP extends Thread {
 }
 	boolean checkCommand(String command, String response)
 	  {
-		return (response.equals("success") && command.equals("QUERY"));
+		return (response.equals("success") && (command.equals("QUERY")||command.equals("FETCH")));
 	  }
-	JSONObject getFirstResponse() 
+	JSONObject getFirstResponse() throws NullPointerException
 	{
 		JSONObject response = null;
 		try{
@@ -76,13 +78,13 @@ public class ClientTCP extends Thread {
 		System.out.println(response.toString());
 		}catch(IOException e){}
 		catch(ParseException e){}
-		return response;
+				return response;
 		
 	}
 	String parseAndSend()
 	{
-		commandParser.parseInput();
-	    JSONObject newCommand = commandParser.toJSON();
+		
+	   
 	    String commandText = newCommand.get("command").toString();
 	    String data;
 		try {
@@ -91,6 +93,9 @@ public class ClientTCP extends Thread {
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (NullPointerException e) 
+		{
+			System.out.println("Server not found");
 		}
 		return commandText;
 		

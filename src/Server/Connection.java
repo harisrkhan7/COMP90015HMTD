@@ -16,7 +16,7 @@ public class Connection extends Thread {
 	  JSONParser parser;
 	  VerifyRequestObject verify;
 	  Response reply;
-		
+	  
 	  public Connection (Socket aClientSocket, Services aS) {
 	    try {
 	    	  availableServices = aS;
@@ -47,9 +47,17 @@ public class Connection extends Thread {
 			 System.out.println("server reading data from client ");
 	    	 	JSONObject command = (JSONObject) parser.parse(in.readUTF());
 	    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());		
-	    		if(verify.checkCommand(command))
+	    		if(verify.existsCommand(command))
 	  		{
-	    			performOperation(command);	
+	    			String cmdText = command.get("command").toString();
+	    			if(verify.checkResource(command, cmdText))
+	    			{
+	    				performOperation(command);
+	    			}
+	    			else
+	    			{
+	    				reply = verify.getMissingResponse(cmdText);
+	    			}
 	  		}
 	  		else
 	  		{
@@ -66,15 +74,17 @@ public class Connection extends Thread {
 	  }
 		return result;
 	}
+	
 	void performOperation(JSONObject command)
 	{
 		try {
 		String commandText = command.get("command").toString();
+		commandText = commandText.toUpperCase();
 		switch(commandText)
 		{
 		case "FETCH": 
 			System.out.println("FETCH COMMAND RECEIVED");
-			reply = availableServices.fetch(new Resource(command,commandText), out);
+//			reply = availableServices.fetch(new Resource(command,commandText), out);
 			break;
 		case "QUERY":
 			System.out.println("QUERY COMMAND RECEIVED");
@@ -111,9 +121,9 @@ public class Connection extends Thread {
 	}
 	Response initiateExchange(JSONObject command) throws ParseException, IOException
 	{
-		Response reply;
+		Response reply = null;
 		JSONArray list = waitForNextMessage(true);
-		reply = availableServices.exchange(list);
+		//reply = availableServices.exchange(list);
 		return reply;
 	}
 	void send(Response toSend)
@@ -164,6 +174,6 @@ public class Connection extends Thread {
 		}
 		return null;
 	}
-	}
+		}
 
 

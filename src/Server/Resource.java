@@ -14,9 +14,12 @@ public class Resource {
 	private Server Server;
 	private String uri;
 	private JSONObject toConvert;
+	private boolean convert;
 	public Resource(JSONObject objConvert, String cmd)
 	{
 		updateToConvert(objConvert, cmd);
+		if(convert)
+		{
 		this.Name = getParameter("name");
 		this.Description = getParameter("description");
 		this.Tags = getArrayList("tags");
@@ -25,7 +28,7 @@ public class Resource {
 		this.Server = new Server("localhost",123);
 		this.uri = getParameter("uri");
 		removeWhiteSpaces();
-		
+		}
 	}
 	public Resource(String owner, String channel, String uri)
 	{
@@ -38,6 +41,7 @@ public class Resource {
 			this.Channel = " ";
 		if(owner == null)
 			this.Owner = " ";
+		convert = false;
 		
 	}
 	public Resource(String name, ArrayList<String> tags,
@@ -54,17 +58,19 @@ public class Resource {
 	}
 	void updateToConvert(JSONObject objConvert, String cmd)
 	{
-		if(cmd.equals("PUBLISH")|| cmd.equals("SHARE") || cmd.equals("REMOVE")){
-			System.out.println(objConvert.toJSONString()+ "before get update to convert");
-			toConvert = (JSONObject) objConvert.get("resource");
-			System.out.println(toConvert.toString()+ "update to convertIf after update");
-		}
-		else{
-			System.out.println(objConvert.toString()+"argument");
-			toConvert = (JSONObject) objConvert.get("resourceTemplate");
-			System.out.println(toConvert.toString()+"update to convert else");
-		}
 		
+		if(cmd.equals("PUBLISH")|| cmd.equals("SHARE") || cmd.equals("REMOVE")){
+			toConvert = (JSONObject) objConvert.get("resource");
+			convert = true;
+		}
+		else if(cmd.equals("QUERY")|| cmd.equals("FETCH")){
+			toConvert = (JSONObject) objConvert.get("resourceTemplate");
+			convert = true;
+		}
+		else
+		{
+			convert = false;
+		}
 	}
 
 	public String getParameter(String cmd)
