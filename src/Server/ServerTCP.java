@@ -2,7 +2,7 @@ package Server;
 import java.net.*;
 import java.io.*;
 import java.util.Timer;
-public class ServerTCP extends Thread{
+public class ServerTCP {
 	int serverPort; // the server port
 	ServerSocket listenSocket;
 	Services TCPService;
@@ -11,9 +11,10 @@ public class ServerTCP extends Thread{
 	RequestCheck checkRequest;
 	int exchangeInterval;
 	InetAddress hostname;
+	boolean debug;
 	public ServerTCP(ServerCommands command)
 	{
-		boolean debug = command.debug;
+		debug = command.debug;
 		exchangeInterval = command.getExchangeInterval();
 		int connectionInterval = command.getConnectionInterval();
 		String secret = command.getSecret();
@@ -24,13 +25,15 @@ public class ServerTCP extends Thread{
 		TimedExchange = new Timer();
 		checkRequest = new RequestCheck(connectionInterval);
 	}
-	public void run()
+	public void start()
 	{
 		System.out.println("Server Running");
+		
 		TimedExchange.scheduleAtFixedRate(exchange, 10, exchangeInterval);
 		try
 		{
-			listenSocket = new ServerSocket(serverPort);
+			listenSocket = new ServerSocket(serverPort, 0 , hostname);
+			System.out.println(listenSocket.getInetAddress());
 			while(true) {
 				System.out.println("Server listening for a connection");
 				Socket clientSocket = listenSocket.accept();
@@ -38,7 +41,7 @@ public class ServerTCP extends Thread{
 				System.out.println(clientSocket.getInetAddress().toString());
 				if(checkRequest.verifyClient(clientSocket))
 				{
-					Connection c = new Connection(clientSocket, TCPService);
+					Connection c = new Connection(clientSocket, TCPService, debug);
 					c.start();
 				}
 				else

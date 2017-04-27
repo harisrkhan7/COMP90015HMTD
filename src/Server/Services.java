@@ -21,6 +21,7 @@ public class Services {
 	private ArrayList<Server> ServerList;
 	private HashMap<String, Resource> ResourceList;
 	private String secretServer;
+	private boolean debug;
 	/**
 	 * @return the serverList
 	 */
@@ -61,6 +62,7 @@ public class Services {
 	{
 		if(secret != null)
 		this.secretServer =secret;
+		debug = true;
 		ServerList = new ArrayList<Server>();
 		ResourceList = new HashMap<String, Resource>();
 		
@@ -295,50 +297,60 @@ public class Services {
 		
 	}
 	
-	
-	public Response transferOperation(Resource toFetch, DataOutputStream out)
-	{
-	     Response toReturn;
-	     double fileSize = (double) 0.0;
-	        try {	
-	              	URI uri = new URI(toFetch.getUri());
-	              	System.out.println("URI path is "+ uri.getPath());
-	              	File fileBeingSent = new File(uri.getPath());
-	              	fileSize = fileBeingSent.length();
-	              	RandomAccessFile byteFile = new RandomAccessFile(fileBeingSent,"r");
-	              	byte[] sendingBuffer = new byte[1024*1024];
-	              	int left;
-	              	System.out.println("Ready to send the buffer " + sendingBuffer);
-	              	while((left = byteFile.read(sendingBuffer)) > 0){
-	              	      System.out.println("file left " + left);
-	              	      out.write(Arrays.copyOf(sendingBuffer, left));
-			 }
-			 byteFile.close();
+	public Response fetch(Resource toFetch, DataOutputStream out) throws URISyntaxException, IOException{
+		URI uri = new URI(toFetch.getUri());
+		if(uri.isAbsolute())
+		{
+		System.out.println(uri.toString());
+		JSONObject temp = new Response(true, null).toJSON();
+		out.writeUTF(temp.toJSONString());
+		String fileName = toFetch.getUri();
+		// Check if file exists
+		File f = new File("server_files/"+fileName);
+		if(f.exists()){
+			
+			// Send this back to client so that they know what the file is.
+			JSONObject trigger = toFetch.toJSON();
+			trigger.put("file_size",f.length());
+			try {
+				// Send trigger to client
+				out.writeUTF(trigger.toJSONString());
+				if(debug)
+					System.out.println(trigger.toJSONString());
+				// Start sending file
+				RandomAccessFile byteFile = new RandomAccessFile(f,"r");
+				byte[] sendingBuffer = new byte[1024*1024];
+				int num;
+				boolean send = false;
+				// While there are still bytes to send..
+				while((num = byteFile.read(sendingBuffer)) > 0){
+					System.out.println(num);
+					out.write(Arrays.copyOf(sendingBuffer, num));
+					send=true;
+				}
+				if(send){
+				trigger = new JSONObject();
+				trigger.put("resultSize", "1");
+				out.writeUTF(trigger.toJSONString());
+				if(debug)
+					System.out.println(trigger.toString());
+				}
+				byteFile.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
+		}
+		else{
 
-		   } catch (FileNotFoundException e) {
-
-			 e.printStackTrace();
-			 Response res = new Response(false,"invalid resourceTemplate");
-			 return res;
-		   } catch (IOException e){
-			  System.out.println(e.getMessage());   
-		   } catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			Response res = new Response(false, "invalid URI");
-			return res;
-		  }
-
-		toReturn = new Response(true,null);
-//		toReturn.setExtra((int) fileSize);
-		return toReturn;
-		
-		// extra is now something 
+			return new Response(false,"Failed to send");
+			// Throw an error here..
+		}  
 		
 	}
 
-	
-		
+
 	public Response exchange(JSONArray list)
 	{
 		//Setting up and initialising variables
@@ -423,7 +435,6 @@ public class Services {
 
 	// Support method for the Query method
 
-
     public static ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
 		  Resource templateResource){
 	    // initialize matching array to be return
@@ -447,7 +458,6 @@ public class Services {
     
     
 	// Support method for the Query method
-	
 	
 	public static boolean matchChannel(Resource res1, Resource res2){
 	      if (res1.getChannel().equals(res2.getChannel())) return true;
@@ -515,8 +525,6 @@ public class Services {
 	      return false;
 	}
 	
-
-	
 	
 void printResourceList()
 {
@@ -530,7 +538,5 @@ void printResourceList()
 	}
 			
 }
-
-
 
 }

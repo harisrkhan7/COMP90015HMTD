@@ -1,5 +1,7 @@
 package Client;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import org.apache.commons.cli.CommandLine;
@@ -242,5 +244,20 @@ public class ArgumentParser {
 		}
 		return tempArray;	
 	}
-
+	int getPort(){
+		int temp = Integer.parseInt(commandLine.getOptionValue("port"));
+		return temp;
+	}
+	InetAddress getHostName() throws UnknownHostException
+	{
+		String temp = commandLine.getOptionValue("hostname");
+		InetAddress test = InetAddress.getByName(temp);
+		return test;
+		
+	}
+	boolean getDebug()
+	{
+		boolean temp = commandLine.hasOption("debug");
+		return temp;
+	}
 }

@@ -16,9 +16,10 @@ public class Connection extends Thread {
 	  JSONParser parser;
 	  VerifyRequestObject verify;
 	  Response reply;
-	  
-	  public Connection (Socket aClientSocket, Services aS) {
+	  boolean debug;
+	  public Connection (Socket aClientSocket, Services aS,boolean debug) {
 	    try {
+	    	  this.debug = debug;
 	    	  availableServices = aS;
 	      clientSocket = aClientSocket;
 	      in = new DataInputStream( clientSocket.getInputStream());
@@ -32,20 +33,26 @@ public class Connection extends Thread {
 	    }
 	public void run(){
 		     boolean waitForMessage = false;     
-			do
-			{	
-		    	waitForMessage = serveClient();
+		     try {
+		     do
+			{	    	
+					waitForMessage = serveClient();
+				
 			}while(waitForMessage == true);
 			send(reply);
+			
+			} catch (IOException | ParseException e) {
+				e.printStackTrace();
+			}
 	}
-	boolean serveClient()
+	boolean serveClient() throws IOException, ParseException
 	{
 		boolean result = true;
-		try { 
 		 if(in.available() > 0){
 	    		// Attempt to convert read data to JSON
 			 System.out.println("server reading data from client ");
 	    	 	JSONObject command = (JSONObject) parser.parse(in.readUTF());
+	    	 	if(debug)
 	    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());		
 	    		if(verify.existsCommand(command))
 	  		{
@@ -65,13 +72,6 @@ public class Connection extends Thread {
 	  		}
 	    		result = false;
 	  	}
-	  }catch (EOFException e){
-	     System.out.println("EOF:"+e.getMessage());
-	  } catch(IOException e) {
-	     System.out.println("readline:"+e.getMessage());
-	  } catch(ParseException e){
-		  System.out.println("Parse: " + e.getMessage());
-	  }
 		return result;
 	}
 	
@@ -80,16 +80,17 @@ public class Connection extends Thread {
 		try {
 		String commandText = command.get("command").toString();
 		commandText = commandText.toUpperCase();
+		synchronized(availableServices)
+		{
 		switch(commandText)
 		{
 		case "FETCH": 
 			System.out.println("FETCH COMMAND RECEIVED");
-//			reply = availableServices.fetch(new Resource(command,commandText), out);
+			reply = availableServices.fetch(new Resource(command,commandText), out);
 			break;
 		case "QUERY":
 			System.out.println("QUERY COMMAND RECEIVED");
 			Resource temp = new Resource(command,commandText);
-			System.out.println(temp.toJSON().toString());
 			reply = availableServices.
 					query(false, temp);
 			break;
@@ -114,6 +115,7 @@ public class Connection extends Thread {
 			reply =  new Response(false,"invalid command");
 			break;
 		}
+		}
 		  }catch (URISyntaxException | ParseException | IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -126,10 +128,15 @@ public class Connection extends Thread {
 		//reply = availableServices.exchange(list);
 		return reply;
 	}
-	void send(Response toSend)
+	void send(Response toSend) throws IOException
 	{
+		
+		if(toSend != null)
+		{
 		JSONObject reply = toSend.toJSON();
-		try{
+		out.writeUTF(reply.toJSONString());
+		if(debug)
+		System.out.println(reply.toString());
 		
 		if(toSend.responseListIsEmpty() == false)
 		{
@@ -141,6 +148,8 @@ public class Connection extends Thread {
 			{
 				iterator++;
 				out.writeUTF(j.toJSONString());
+				if(debug)
+					System.out.println(j.toString());
 			}
 			
 			temp = new JSONObject();
@@ -150,13 +159,13 @@ public class Connection extends Thread {
 		}
 		else {
 			out.writeUTF(reply.toJSONString());
+			if(debug)
+				reply.toJSONString();
 			out.flush();
 		}
 		}
-		catch(IOException e) {
-		     System.out.println("readline:"+e.getMessage());
-		  }
-	}
+		}
+		
 	JSONArray waitForNextMessage(boolean wait) throws ParseException, IOException{
 		JSONObject response = new JSONObject();
 		String data;

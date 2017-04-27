@@ -68,7 +68,7 @@ public class ServerCommands {
 			this.advertisedHostName = InetAddress.getByName(advertisedHostName);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Hostname to found. Using default hostname.");
 		}
 	}
 	/**
