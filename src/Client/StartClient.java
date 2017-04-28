@@ -13,6 +13,8 @@ public class StartClient {
 		InetAddress address;
 		address = commandParser.getHostName();
 		boolean debug = commandParser.getDebug();
+		InetAddress inet = InetAddress.getLocalHost();//debug
+		System.out.println(inet.toString());//debug
 		ClientTCP client = new ClientTCP(commandParser.toJSON(), port, address, debug);
 		client.start();
 		} catch (UnknownHostException e) {

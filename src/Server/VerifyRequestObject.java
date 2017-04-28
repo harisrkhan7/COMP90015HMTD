@@ -37,21 +37,28 @@ public class VerifyRequestObject {
 	public boolean checkResource(JSONObject inputResource, String cmd)
 	{
 		boolean convert;
-		if(cmd.equals("PUBLISH")|| cmd.equals("SHARE") || cmd.equals("REMOVE")){
+		switch(cmd)
+		{
+		case "SHARE":
 			convert = inputResource.containsKey("resource");
-			
-		}
-		else if(cmd.equals("QUERY")|| cmd.equals("FETCH")){
+			convert = inputResource.containsKey("secret");
+			break;
+		case "REMOVE":
+		case "PUBLISH":
+			convert = inputResource.containsKey("resource");
+			break;
+		case "QUERY":
+		case "FETCH":
 			convert = inputResource.containsKey("resourceTemplate");
-		}
-		else if(cmd.equals("EXCHANGE"))
-		{
+			break;
+		case "EXCHANGE":
 			convert = inputResource.containsKey("serverList");
-		}
-		else
-		{
+			break;
+		default:
 			convert = false;
+			break;
 		}
+		
 		return convert;
 	}
 	Response getMissingResponse(String cmdText)

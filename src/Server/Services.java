@@ -238,94 +238,32 @@ public class Services {
 	UnknownHostException,
 	IOException, 
 	ParseException
-	{
-//	      	printResourceList();
-	      	if (debug){
-		System.out.println("RECEIVED IN QUERY" + toQuery.toJSON().toString());
-	      	}
-		ArrayList<Resource> matched = getEntry(ResourceList, toQuery);
-		
+	{    	Response queryResponse = null;
+	      	ArrayList<Resource> matched = getEntry(ResourceList, toQuery);
 		//relay to be implemented properly
-		
 		if(relay){
-		   // make connection
-		      JSONObject relayQuery = toQuery.toJSON();
-		      JSONParser tempParser = new JSONParser();
-
-		      for(Server sv : ServerList){
-			    // send query
-			    Socket clientSocket;
-			    DataInputStream in;
-			    DataOutputStream out;
-
-			    String tempHost = sv.getHostname();
-			    int tempPort = sv.getPort();
-			    
-			    clientSocket = new Socket(tempHost, tempPort);
-			    in = new DataInputStream( clientSocket.getInputStream());
-			    out = new DataOutputStream( clientSocket.getOutputStream());
-			    
-			    // modify the JSON to take out channel / 
-			    relayQuery.put("channel","");
-			    relayQuery.put("owner","");
-			    
-			    JSONObject forRelay = new JSONObject();
-			    
-			    forRelay.put("command","QUERY");
-			    forRelay.put("relay",false);
-			    forRelay.put("resourceTemplate",relayQuery);
-			    
-			    out.writeUTF(forRelay.toJSONString());
-			    
-			    JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
-			    // once received
-			    String data;
-			    JSONObject tempResponse = new JSONObject();
-				
-			    do{
-				  if(in.available()>0) {
-					data = in.readUTF();
-
-					// Attempt to convert read data to JSON
-					tempResponse = (JSONObject) tempParser.parse(data);
-					
-					VerifyRequestObject verifier = new VerifyRequestObject();
-					if (verifier.checkTemplate(tempResponse)){
-					      Resource toAdd = new Resource(tempResponse,"QUERY");
-					      toAdd.setOwner("*");
-					      matched.add(toAdd);
-					}
-					if (debug){
-					System.out.println("(RECEIVED FROM RELAY)"  +tempResponse.toString());
-					}
-				  }
-				  
-				}while(tempResponse.containsKey("resultSize") == false);
-			    
-			    if (debug){
-            			    System.out.println("added all of the relayed resource \n matched is now ");
-            			    System.out.println(matched.toString());
-			    }
-			    clientSocket.close();
-			  }
-			    
-		      }
-	      Response queryResponse;
+			   // make connection
+			    ArrayList<Resource> temp = new ArrayList<Resource>();  
+				for(Server sv : ServerList){
+				    // send query
+			    	  try{
+			    		  temp = relaySend(toQuery, sv);
+			    		  matched.addAll(temp);
+			    	  }catch(IOException | ParseException e )
+			    	  {
+			    		  continue;
+			    	  }
+			      }      
 	      if(matched.isEmpty()){
 	    	  queryResponse = new Response(false,"invalid resourceTemplate");
 	      } 
 	      else{
 		    queryResponse = new Response(true, null);
 		    queryResponse.setResourceList(matched);
-		    if(debug){
-		    System.out.println("Resources to be sent is "+ queryResponse.toJSON().toString());
-		    }
-	      }
-		    
-	    	  return queryResponse;		
+	      }	
 	}
-
-	
+		return queryResponse;
+	}
 	public Response fetch(Resource toFetch, DataOutputStream out) throws  IOException{
 		Response toReturn = null;
 		URI uri = null;
@@ -354,7 +292,69 @@ public class Services {
 		return toReturn;  
 		
 	}
-	
+	ArrayList<Resource> receiveQueryResources(DataInputStream in, JSONParser tempParser) throws IOException, ParseException
+	{
+		
+	    String data;
+	    JSONObject tempResponse = new JSONObject();
+	    VerifyRequestObject verifier = new VerifyRequestObject();
+	    ArrayList<Resource> toReturn = new ArrayList<Resource>();
+	    do{
+		  if(in.available()>0) {
+			data = in.readUTF();
+			// Attempt to convert read data to JSON
+			tempResponse = (JSONObject) tempParser.parse(data);
+			
+			
+			if (verifier.checkTemplate(tempResponse)){
+			      Resource toAdd = new Resource(tempResponse,"QUERY");
+			      toAdd.setOwner("*");
+			      toReturn.add(toAdd);
+			}
+			if (debug){
+			System.out.println("RECEIVED:"+tempResponse.toString());
+			}
+		  }
+		  
+		} while (tempResponse.containsKey("resultSize") == false);
+	    return toReturn;
+	}
+    ArrayList<Resource> relaySend(Resource toQuery, Server sv) throws UnknownHostException, IOException, ParseException
+    {
+    	ArrayList<Resource> toReturn = new ArrayList<Resource>();
+    	JSONObject relayQuery = toQuery.toJSON();
+	JSONParser tempParser = new JSONParser();
+    	Socket clientSocket;
+    DataInputStream in;
+    DataOutputStream out;
+    String tempHost = sv.getHostname();
+    int tempPort = sv.getPort();
+    
+    clientSocket = new Socket(tempHost, tempPort);
+    in = new DataInputStream( clientSocket.getInputStream());
+    out = new DataOutputStream( clientSocket.getOutputStream());
+    // modify the JSON to take out channel / 
+    relayQuery.put("channel","");
+    relayQuery.put("owner","");
+    
+    JSONObject forRelay = new JSONObject();
+    forRelay.put("command","QUERY");
+    forRelay.put("relay",false);
+    forRelay.put("resourceTemplate",relayQuery);
+    
+    out.writeUTF(forRelay.toJSONString());
+    // receiving query and see if success
+    JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
+    // once received
+    
+    if(received.containsKey("response")){
+	  if(received.get("response").equals("success")){
+		  toReturn = receiveQueryResources(in,tempParser);
+	 }
+    }
+    clientSocket.close();
+    return toReturn;
+    }
 	private Response sendFile(String fileName, DataOutputStream out, Resource toFetch) throws IOException
 	{
 		
@@ -542,7 +542,7 @@ public class Services {
 		{
 		    //opening a socket
             Socket socket = new Socket(serv.getHostname(),serv.getPort());
-            int timeout=10000;
+            int timeout=Parameters.EXCHANGE_TIMEOUT;
             socket.setSoTimeout(timeout);
             DataInputStream in = new DataInputStream( socket.getInputStream());
             DataOutputStream out =new DataOutputStream( socket.getOutputStream());
@@ -568,7 +568,7 @@ public class Services {
 				      matchNameDesc(templateResource,resourcefromList))
 			  {  
 				match.add(entry.getValue());
-				System.out.println("MATCHED, adding...");
+				//System.out.println("MATCHED, adding...");//debug
 			  }
 
 		    }
@@ -604,8 +604,8 @@ public class Services {
 		      if(tagList1.isEmpty()) return true;
 		      
 		      ArrayList<String> tagList2 = res2.getTags();
-		      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
-		      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
+//		      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
+//		      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
 		      
 		      
 		      
@@ -639,7 +639,7 @@ public class Services {
 		public boolean containString(String check,ArrayList<String> list){
 			    for (String str : list){
 			        if (check.equalsIgnoreCase(str)){
-			              System.out.println("matched returning TRUE");
+//			              System.out.println("matched returning TRUE");
 			            return true;
 			         }
 			     }
