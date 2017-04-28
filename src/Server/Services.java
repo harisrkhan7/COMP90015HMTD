@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.*;
+import org.apache.commons.validator.routines.InetAddressValidator;
+
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -84,157 +88,157 @@ public class Services {
 		return response;
 
 	}
-	
-	public Response publish(Resource res) throws URISyntaxException
-	{	
-		return new Response(true,null);
+
+
+	public Response publish(Resource res) throws URISyntaxException{	
+//	      if (resourceMissing(res)) {
+//		    return new Response(false, "missing resource");
+//	      }
+//	      
+	      if (uriInvalid(res)){
+		    return new Response(false, "invalid resource uri");
+	      }
+	      
+	      if (uriIncorrect(res, "PUBLISH") || invalidChannelOwner(res)){
+		    return new Response(false , "cannot publish resource");
+	      }
+	      
+	      if (resourceInvalid(res)){
+		    return new Response(false, "invalid resource res");
+	      }
+	      
+	      if (duplicateResource(res)) {
+		    return new Response(true, null);
+	      }else{
+		    ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);
+		    return new Response(true,null);
+	      }
 	}
+	
+	public boolean resourceMissing(Resource res){
+	      return false;
+	}
+	
+	public boolean uriInvalid(Resource res){
+	      try{
+		    @SuppressWarnings("unused")
+		  URI checkUri = new URI(res.getUri());
+//		    System.out.println(checkUri.getScheme());
+//		    if (checkUri.getScheme().equals("file")) return true;
+		    return false;
+	      }catch(URISyntaxException e){
+		    e.printStackTrace();
+		    return true;
+	      }
+	}
+	
+	public boolean uriIncorrect(Resource res, String cmd){
+	      try {
+		    
+		  URI checkUri = new URI(res.getUri());
+		  if ( checkUri.isAbsolute() == false){
+			return true;
+		  }
+		  if (cmd.equals("PUBLISH")){
+			if (checkUri.getScheme().equals("file")) return true;
+			return false;
+		  }else{
+			if (!checkUri.getScheme().equals("file")) return true;
+			return false;
+		  }
+	    } catch (URISyntaxException e) {
+		 System.out.println("Bugs...");
+		e.printStackTrace();
+		 return true; // should never happen
+	    }
+	     
+	}
+	
+	public boolean resourceInvalid(Resource res){
+	      if ( (res.getUri().equals("")) ||
+	      (res.getEzServer()==null) ||
+	      (res.getOwner().equals("*")) ){
+		    return true;
+	      }
+	      return false;
+	      
+	}
+	
+
+	public boolean invalidChannelOwner(Resource res){
+	      String OCU = res.getOwner()+res.getChannel()+res.getUri();
+	      String CU = res.getChannel()+res.getUri();
+	      
+//	      System.out.println("OCU " +OCU);
+//	      System.out.println("CU " + CU);
+	      
+	      List<String> l = new ArrayList<String>(ResourceList.keySet());
+	      for(String listItem : l){
+		    if(listItem.contains(CU)){		//contain channel and uri
+//			  System.out.println("contain channel  owner");
+//			  System.out.println("Res List: " +listItem);
+			  if(!listItem.contains(OCU)){	//not the same owner, rule broken
+				return true; // if same resource, different owner,
+					     // restrict publishing
+			  }
+		    }
+	      }
+	      return false;
+	}
+	
+	public boolean duplicateResource(Resource res){
+	      String key = res.getOwner()+res.getChannel()+res.getUri();
+	      List<String> l = new ArrayList<String>(ResourceList.keySet());
+	      for(String listItem : l){
+		    if(listItem.contains(key)){		//contain channel and uri
+			  ResourceList.replace(key, res);
+			  return true;
+		    }
+	      }
+	      return false;
+	}
+	
+	
+	
+	
 	public Response share(String secret, Resource res) throws URISyntaxException
 	{	
-		Response response;		
-		String command = "share";
-		response = missingResource(command,res,secret);
-		
-		// THESE CHECKS contains bugs......
-		
-		System.out.println("At missing resource check");
-		if(!(response.getResponse() == null)){
-			return response;
-		}	
-
-		System.out.println("At incorrect resource check");
-		response = incorrectResource(res);
-		if(!(response.getResponse() == null)){
-			return response;
-		}
-
-
-		System.out.println("At channelOwner check");
-		response = sameChannelDiffOwner(command,res);
-		if(!(response.getResponse() == null)){
-			return response;
-		}
-		
-		// bug here at secret check
-		System.out.println("At secret check");
-		response = secretCheck(secret);
-		if((response.getResponse().equals("error"))){
-			return response;
-		}
-
-		System.out.println("sequence 1 ");
-		
-		response = uriCheck(command,res);
-		if(!(response.getResponse() == null)){
-			return response;
-		}
-
-		System.out.println("URI CHECKEDOUT");	
-//		return responseCheck("share",res,secret);	
-		System.out.println("HERE");
-		printResponse(new Response(false, "exception!!"));
-		return new Response(false, "exception!!"); //other exception situations
-
+	      if (incorrectSecret(secret)){
+		    return new Response(false, "incorrect secret");
+	      }
+	      
+	      if (uriInvalid(res)){
+		    return new Response(false, "invalid resource URI");
+	      }
+	      
+	      if (uriIncorrect(res, "SHARE") || invalidChannelOwner(res)){
+		    return new Response(false , "cannot share resource");
+	      }
+	      
+	      if (resourceInvalid(res)){
+		    return new Response(false, "invalid resource RES");
+	      }
+	      
+	      if (duplicateResource(res)) {
+		    return new Response(true, null);
+	      }else{
+		    ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);
+		    return new Response(true,null);
+	      }
 	}
 
-	public Response missingResource(String command, Resource res, String secret){
-		if(!command.equals("share") && res==null){	//1.if no resource and not share command
-		      System.out.println("no resource found");
-			printResponse(new Response(false, "missing resource"));
-			return new Response(false, "missing resource");
-		}	
-		if(command.equals("share")){	
-			if(secret.equals("") || res==null){	//1.if no secret or resource
-			      System.out.println("no response and blank secret");
-				printResponse(new Response(false, "missing resource and\\/or secret"));
-				return new Response(false, "missing resource and\\/or secret");
-			}
-		}	
-//		return null;
-		return new Response();
-	}
-	
-	public Response incorrectResource(Resource res){
-//		System.out.println("Uri:"+res.getUri()+" EzServer: "+res.getEzServer()+" Owner: "+res.getOwner());
-		if(( res.getUri().equals("")) || (res.getEzServer()==null) || res.getOwner().equals("*") ){	//2.if incorrect resource info
-//			System.out.println("Invalid, Uri:"+res.getUri()+" EzServer: "+res.getEzServer()+" Owner: "+res.getOwner());
-			printResponse(new Response(false, "invalid resource"));
-			return new Response(false, "invalid resource");
-		}	
-		return new Response();
-	}
-
-	public Response sameChannelDiffOwner(String command, Resource res){
-		String OCU = res.getOwner()+res.getChannel()+res.getUri();
-		String CU = res.getChannel()+res.getUri();
-		List<String> l = new ArrayList<String>(ResourceList.keySet());
-		for(String listItem : l){
-		   if(listItem.contains(CU)){		//contain channel and uri
-			 
-			 System.out.println("WHOOPSIES");
-			 
-		      if(!listItem.contains(OCU)){	//not the same owner, rule broken
-			    
-			    System.out.println("WOAHHHH");
-			    
-		    	 if(command.equals("publish")){
-		    		 System.out.println("SameChannel, Uri:"+res.getUri()+" EzServer: "+res.getEzServer()+" Owner: "+res.getOwner());		 			
-		    		 printResponse(new Response(false, "cannot publish resource"));
-		    		 return new Response(false, "cannot publish resource");
-		    	 }else{
-		    		 printResponse(new Response(false, "cannot share resource"));
-		    		 return new Response(false, "cannot share resource");
-		    	 }
-		      }
-		   }
-		}
-		return new Response();
-	}
-
-	public Response secretCheck(String secret){
+	public boolean incorrectSecret(String secret){
 //		if(Arrays.binarySearch(SecretList, secret) == 0){	//if secret is not in the list
 		if(!secret.equals(secretServer)){	//if secret is not in the list
-			printResponse(new Response(false, "incorrect secret"));
-			return new Response(false, "incorrect secret");
+//			printResponse(new Response(false, "incorrect secret"));
+			return true;
 		}
-		return new Response(true,"");
-	}
-	
-	public Response uriCheck(String command, Resource res) throws URISyntaxException{
-		URI uri = new URI(res.getUri());
-		System.out.println("I'm at URICHECK NOW");
-//		Response response;
-		boolean uriAbs = uri.isAbsolute();
-		if(!uriAbs){		//if URI contains file or relative address, rule broken
-			 if(command.equals("publish") || res.getUri().contains("file")){
-				 System.out.println("uriCheck, Uri:"+res.getUri()+" EzServer: "+res.getEzServer()+" Owner: "+res.getOwner());					
-				 printResponse(new Response(false, "cannot publish resource"));
-				 return new Response(false, "cannot publish resource");
-			 }else{
-				 printResponse(new Response(false, "cannot share resource"));
-				 return new Response(false, "cannot share resource");
-			 }					 	 
-		}else{		
-		      //if all correct 
-			ResourceList.put(res.getOwner()+res.getChannel()+res.getUri(),res);	
-			System.out.println("Input Success!!!!!!!!!");
-			for (String name: ResourceList.keySet()){
-	            String key =name.toString();
-	            String value = ResourceList.get(name).toString();  
-	            System.out.println("key:" + key + " | value:" + value);  
-			} 
-			printResponse(new Response(true,""));
-			return new Response(true,"");	//True should not have error message?		
-		}
-	}
-	
-	public void printResponse(Response response){
-		System.out.println("Response: "+response.toJSON().toJSONString());
-		System.out.println("Response: "+response.toJSON().toString());
-		System.out.println("Response: "+response.toString());
-		response.toJSON().toString();
+		return false;
 	}
 
+	
+	
+	
 	public Response query(Boolean relay, Resource toQuery) throws 
 	UnknownHostException,
 	IOException, 
@@ -380,6 +384,60 @@ public class Services {
 	        }
 	        return false;
 	    }
+		    public Response verifyServerList(JSONObject toCheck){
+        Response response=new Response();
+        //InetAddress host=null;
+        String host;
+        String port=null;
+        String address;
+        InetAddressValidator validator=new InetAddressValidator();
+        if(toCheck.containsKey("serverList")){
+            JSONArray list= (JSONArray) toCheck.get("serverList");
+            JSONObject serv;
+            for( int i=0;i<list.size();i++){
+                serv=(JSONObject) list.get(i);
+                if(!serv.containsKey("hostname") || !serv.containsKey("port")){
+                    response=new Response(false,"missing resourceTemplate");
+                    return response;
+                }
+                //host=(InetAddress) serv.get("hostname");
+                InetAddress address1 = null;
+                host=(String) serv.get("hostname");
+                port=(String) serv.get("port");
+                //InetAddress add = (String) InetAddress.getByName(host);
+                //address=(String) InetAddress.getByName(host);
+                try{
+                    address1=InetAddress.getByName(host);
+                }
+                catch (UnknownHostException e){
+                    response=new Response(false,"missing resourceTemplate");
+                    return response;
+                }
+                //System.out.println(address1.toString());
+                address=(String) serv.get("hostname");
+                if(!(port.matches("([0-9])+"))){
+                    response=new Response(false,"missing resourceTemplate");
+                    return response;
+                }
+                if(!(validator.isValid(address))){
+                    response=new Response(false,"missing resourceTemplate");
+                    return response;
+                }
+
+            }
+        }
+        else{
+            response=new Response(false,"missing or invalid server list");
+        }
+        response.setResponse("success");
+        response.setErrorMessage("");
+        return response;
+
+    }
+
+	
+	
+	
 	 public void exchange()
 		{
 	        //Setting up the variables
@@ -435,95 +493,123 @@ public class Services {
 
 	// Support method for the Query method
 
-    public static ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
-		  Resource templateResource){
-	    // initialize matching array to be return
-	    ArrayList<Resource> match = new ArrayList<Resource>();
-	    // Looping through the ResourceList
-	    for (Entry<String, Resource> entry : ResourceList.entrySet()){
-		  Resource resourcefromList = entry.getValue();
-		  if (matchChannel(templateResource,resourcefromList) &&
-			      matchOwner(templateResource, resourcefromList) &&
-			      matchTags(templateResource, resourcefromList) && 
-			      matchURI(templateResource, resourcefromList) &&
-			      matchNameDesc(templateResource,resourcefromList))
-		  {  
-			match.add(entry.getValue());
-			System.out.println("MATCHED, adding...");
-		  }
 
+	    public ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
+			  Resource templateResource){
+		    // initialize matching array to be return
+		    ArrayList<Resource> match = new ArrayList<Resource>();
+		    // Looping through the ResourceList
+		    for (Entry<String, Resource> entry : ResourceList.entrySet()){
+			  Resource resourcefromList = entry.getValue();
+			  if (matchChannel(templateResource,resourcefromList) &&
+				      matchOwner(templateResource, resourcefromList) &&
+				      matchTags(templateResource, resourcefromList) && 
+				      matchURI(templateResource, resourcefromList) &&
+				      matchNameDesc(templateResource,resourcefromList))
+			  {  
+				match.add(entry.getValue());
+				System.out.println("MATCHED, adding...");
+			  }
+
+		    }
+		    return match;
 	    }
-	    return match;
-    }
+
     
     
 	// Support method for the Query method
-	
-	public static boolean matchChannel(Resource res1, Resource res2){
-	      if (res1.getChannel().equals(res2.getChannel())) return true;
-	      return false;
-	}
-	
-	public static boolean matchOwner(Resource res1, Resource res2){
-	      if (res1.getOwner().equals(res2.getOwner())) return true;
-	      if (res1.getOwner().equals("")) return true;
-	      return false;
-	}
-	
-	// have to check that res1 tags are all in res2 tags
-	// or res2 have all the tags res1 have
-	public static boolean matchTags(Resource res1, Resource res2){
-	      ArrayList<String> tagList1 = res1.getTags();
-	      
-	      if(tagList1.isEmpty()) return true;
-	      
-	      ArrayList<String> tagList2 = res2.getTags();
-	      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
-	      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
-	      
-	      
-	      
-	      boolean abort = false;
-	      for (String tag : tagList1){
-		    System.out.println("checking the resource 1 tag "+tag);
-		    if (containString(tag,tagList2) == false) abort =  true;
-		    if(abort) return false;
-	      }
-	      return true;
-	}
-	
-	
-	public static boolean matchURI(Resource template, Resource res){
-	      String uriTemplate = template.getUri();
-	      String resTemplate = res.getUri();
-	      
-	      if (uriTemplate.equals(resTemplate)) return true;
-	      return false;
-	}
-	
-	public static boolean containString(String check,ArrayList<String> list){
-		    for (String str : list){
-		        if (check.equalsIgnoreCase(str)){
-		              System.out.println("matched returning TRUE");
-		            return true;
-		         }
-		     }
-		    return false;
+		public boolean matchChannel(Resource res1, Resource res2){
+		      if (res1.getChannel().equals("")) return true;
+		      if (res1.getChannel().equals(res2.getChannel())){
+			    System.out.println("ChannelMatched");
+			    return true;
+		      }
+		      return false;
+		}
+		
+		public boolean matchOwner(Resource res1, Resource res2){
+		      if (res1.getOwner().equals(res2.getOwner())){
+			    System.out.println("Owner matched");
+			    return true;
+		      }
+		      if (res1.getOwner().equals("")) return true;
+		      return false;
+		}
+		
+		// have to check that res1 tags are all in res2 tags
+		// or res2 have all the tags res1 have
+		public boolean matchTags(Resource res1, Resource res2){
+		      ArrayList<String> tagList1 = res1.getTags();
+		      
+		      if(tagList1.isEmpty()) return true;
+		      
+		      ArrayList<String> tagList2 = res2.getTags();
+		      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
+		      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
+		      
+		      
+		      
+		      boolean abort = false;
+		      for (String tag : tagList1){
+			    System.out.println("checking the resource 1 tag "+tag);
+			    if (containString(tag,tagList2) == false) abort =  true;
+			    if(abort) {
+				  System.out.println("ABORT");
+				  return false;
+			    }
+		      }
+		      System.out.println("Tags matches");
+		      return true;
+		}
+		
+		
+		public boolean matchURI(Resource template, Resource res){
+		      if(template.getUri().equals("")) return true;	      
+		      String uriTemplate = template.getUri();
+		      String resTemplate = res.getUri();
 
+		      
+		      if (uriTemplate.equals(resTemplate)){
+			    System.out.println("URI matched");
+			    return true;
+		      }
+		      return false;
+		}
+		
+		public boolean containString(String check,ArrayList<String> list){
+			    for (String str : list){
+			        if (check.equalsIgnoreCase(str)){
+			              System.out.println("matched returning TRUE");
+			            return true;
+			         }
+			     }
+			    return false;
+
+			}
+
+		
+		public boolean matchNameDesc(Resource template, Resource res){
+		      String templateName = template.getName();
+		      String resName = res.getName();
+		      String templateDesc = template.getDescription();
+		      String resDesc = res.getDescription();
+
+		      if(templateName.equals("") && templateDesc.equals("")){
+			    return true;
+		      }
+		      
+		      if (!templateName.equals("") && 
+				  StringUtils.containsIgnoreCase(resName,templateName)){
+			    return true;
+		      }
+
+		      if (!templateDesc.equals("") &&
+				  StringUtils.containsIgnoreCase(resDesc,templateDesc)){
+			    return true;
+		      }
+		      return false;
 		}
 
-	
-	public static boolean matchNameDesc(Resource template, Resource res){
-	      String templateName = template.getName();
-	      String resName = res.getName();
-	      String templateDesc = template.getDescription();
-	      String resDesc = res.getDescription();
-	      
-	      if(templateName.equals("") && templateDesc.equals("")) return true;
-	      if (!templateName.equals("") && resName.toLowerCase().contains(templateName)) return true;
-	      if (!templateDesc.equals("") && resDesc.toLowerCase().contains(templateDesc)) return true;
-	      return false;
-	}
 	
 	
 void printResourceList()
