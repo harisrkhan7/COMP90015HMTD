@@ -45,6 +45,25 @@ public class RequestCheck {
 			return false;
 		}
 	}
+	void periodicRemove()
+	{
+		long lastConnectionTime;
+		boolean verification;
+		
+		for (InetAddress tempIP : this.connectedClients.keySet()) {
+		if(connectedClients.containsKey(tempIP))
+		{
+			lastConnectionTime = connectedClients.get(tempIP);
+			verification = verifyDelay(lastConnectionTime, tempIP);
+			if(verification)
+			{
+				connectedClients.remove(tempIP);
+			}
+			
+		}
+		}
+		
+	}
 
 
 

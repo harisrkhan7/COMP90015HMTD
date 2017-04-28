@@ -7,6 +7,7 @@ public class ServerTCP {
 	ServerSocket listenSocket;
 	Services TCPService;
 	PeriodicExchange exchange;
+	PeriodicRemove remove;
 	Timer TimedExchange;
 	RequestCheck checkRequest;
 	int exchangeInterval;
@@ -24,11 +25,13 @@ public class ServerTCP {
 		exchange = new PeriodicExchange(TCPService);
 		TimedExchange = new Timer();
 		checkRequest = new RequestCheck(connectionInterval);
+		remove = new PeriodicRemove(checkRequest);
 	}
 	public void start()
 	{
 		System.out.println("Server Running");
-		TimedExchange.scheduleAtFixedRate(exchange, 10, exchangeInterval);
+		TimedExchange.scheduleAtFixedRate(remove, Parameters.PERIODIC_REMOVE_START_DELAY, Parameters.PERIODIC_REMOVE_INTERVAL);
+		TimedExchange.scheduleAtFixedRate(exchange, Parameters.EXCHANGE_START_DELAY, Parameters.EXCHANGE_INTERVAL);
 		try
 		{
 			listenSocket = new ServerSocket(serverPort, 0 , hostname);
