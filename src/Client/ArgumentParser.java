@@ -30,7 +30,7 @@ public class ArgumentParser {
 		ServerList = new ArrayList<Server>();
 		tempResource = new Resource(null,null,"test");
 	}
-	void parseInput(){
+	void parseInput() throws NumberFormatException{
 		Options options = new Options();
 
 	    Option channel = new Option("channel", true, "channel");
@@ -97,6 +97,7 @@ public class ArgumentParser {
 	    		.hasArgs()
 	    		.valueSeparator(',')
 	    		.build();
+	    options.addOption(servers);
 	    
 	    Option share = new Option("share",false,"share resource on server");
 	    share.setRequired(false);
@@ -144,7 +145,7 @@ public class ArgumentParser {
 	    updateLocalObjects();
 
 	}
-	private void updateLocalObjects()
+	private void updateLocalObjects() throws NumberFormatException
 	{
 		switch(command)
 		{
@@ -214,7 +215,7 @@ public class ArgumentParser {
 		tempResource = new Resource(name,tags,description,uri,
 				channel, owner,ezserver);	
 	}
-	private void updateServerList()
+	private void updateServerList() throws NumberFormatException
 	{
 		String[] servers = commandLine.getOptionValues("servers");
 		for(String s:servers)
@@ -250,7 +251,7 @@ public class ArgumentParser {
 	}
 	InetAddress getHostName() throws UnknownHostException
 	{
-		String temp = commandLine.getOptionValue("hostname");
+		String temp = commandLine.getOptionValue("host");
 		InetAddress test = InetAddress.getByName(temp);
 		return test;
 		

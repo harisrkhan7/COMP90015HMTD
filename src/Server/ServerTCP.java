@@ -28,7 +28,6 @@ public class ServerTCP {
 	public void start()
 	{
 		System.out.println("Server Running");
-		
 		TimedExchange.scheduleAtFixedRate(exchange, 10, exchangeInterval);
 		try
 		{
@@ -43,10 +42,6 @@ public class ServerTCP {
 				{
 					Connection c = new Connection(clientSocket, TCPService, debug);
 					c.start();
-				}
-				else
-				{
-					System.out.println("Connection Refused");
 				}
 			}
 		}

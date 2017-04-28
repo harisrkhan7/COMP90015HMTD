@@ -58,15 +58,15 @@ public class VerifyRequestObject {
 	{
 		Response error;
 		if(cmdText.equals("PUBLISH")|| cmdText.equals("SHARE") || cmdText.equals("REMOVE")){
-			error = new Response(false, "Missing resource");
+			error = new Response(false, "missing resource");
 			
 		}
 		else if(cmdText.equals("QUERY")|| cmdText.equals("FETCH")){
-			error = new Response(false, "Missing resourceTemplate");
+			error = new Response(false, "missing resourceTemplate");
 		}
 		else if(cmdText.equals("EXCHANGE"))
 		{
-			error = new Response(false, "missing or invalid server list");
+			error = new Response(false, "missing resourceTemplate");
 		}
 		else
 		{

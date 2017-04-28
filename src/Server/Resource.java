@@ -56,6 +56,23 @@ public class Resource {
 	      this.Owner = owner;
 	      this.Server = ezserver;
 	}
+	// Deep copy
+	public Resource(Resource toCopy){
+	      
+	      
+		this.Name = toCopy.getName();
+		this.Description = toCopy.getDescription();
+		ArrayList<String> nTags = new ArrayList<String>();
+		for (String entry : toCopy.getTags()){
+		      nTags.add(entry); // string immutable
+		}
+		this.Tags = nTags;
+		this.Channel = toCopy.getChannel();
+		this.Owner = toCopy.getOwner();
+		this.Server = new Server("localhost",123);
+		this.uri = toCopy.getUri();
+	}
+
 	void updateToConvert(JSONObject objConvert, String cmd)
 	{
 		

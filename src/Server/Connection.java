@@ -1,7 +1,7 @@
 package Server;
 import java.net.*;
 import java.util.ArrayList;
-
+import java.net.URISyntaxException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -41,7 +41,9 @@ public class Connection extends Thread {
 			}while(waitForMessage == true);
 			send(reply);
 			
-			} catch (IOException | ParseException e) {
+			} catch (ParseException e){
+				reply = new Response(false,"Invalid Resource Template");
+			}catch (IOException e) {
 				e.printStackTrace();
 			}
 	}
@@ -107,7 +109,7 @@ public class Connection extends Thread {
 			System.out.println("REMOVE COMMAND RECEIVED");
 			reply = availableServices.remove(new Resource(command,commandText));
 			break;	
-		case "EXHCHANGE":
+		case "EXCHANGE":
 			System.out.println("EXCHANGE COMMAND RECEIVED");
 			reply = initiateExchange(command);
 			break;
@@ -116,7 +118,10 @@ public class Connection extends Thread {
 			break;
 		}
 		}
-		  }catch (URISyntaxException | ParseException | IOException e) {
+		  }catch (ParseException e){
+			  reply = new Response(false, "invalid resourceTemplate");
+		  }
+		catch (URISyntaxException | IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -124,8 +129,15 @@ public class Connection extends Thread {
 	Response initiateExchange(JSONObject command) throws ParseException, IOException
 	{
 		Response reply = null;
-		JSONArray list = waitForNextMessage(true);
-		//reply = availableServices.exchange(list);
+		JSONArray list = getList(command);
+		if(list != null)
+		{
+		reply = availableServices.exchange(list);
+		}
+		else
+		{
+			reply = new Response(false, "missing or invalid server list");
+		}
 		return reply;
 	}
 	void send(Response toSend) throws IOException
@@ -166,22 +178,9 @@ public class Connection extends Thread {
 		}
 		}
 		
-	JSONArray waitForNextMessage(boolean wait) throws ParseException, IOException{
-		JSONObject response = new JSONObject();
-		String data;
-		if(wait)
-		{
-			JSONArray list = new JSONArray();
-			do
-		{
-		data = in.readUTF();
-    		// Attempt to convert read data to JSON
-    		response = (JSONObject) parser.parse(data);
-    		list.add(response);
-		}while(response.containsKey("resultSize") == false);
-			return list;
-		}
-		return null;
+	JSONArray getList(JSONObject command) throws IOException{
+		JSONArray list = (JSONArray) command.get("serverList");
+		return list;
 	}
 		}
 

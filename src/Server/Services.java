@@ -20,6 +20,7 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 public class Services {
 	private ArrayList<Server> ServerList;
@@ -96,7 +97,7 @@ public class Services {
 //	      }
 //	      
 	      if (uriInvalid(res)){
-		    return new Response(false, "invalid resource uri");
+		    return new Response(false, "invalid resource");
 	      }
 	      
 	      if (uriIncorrect(res, "PUBLISH") || invalidChannelOwner(res)){
@@ -104,7 +105,7 @@ public class Services {
 	      }
 	      
 	      if (resourceInvalid(res)){
-		    return new Response(false, "invalid resource res");
+		    return new Response(false, "invalid resource");
 	      }
 	      
 	      if (duplicateResource(res)) {
@@ -127,7 +128,6 @@ public class Services {
 //		    if (checkUri.getScheme().equals("file")) return true;
 		    return false;
 	      }catch(URISyntaxException e){
-		    e.printStackTrace();
 		    return true;
 	      }
 	}
@@ -147,9 +147,7 @@ public class Services {
 			return false;
 		  }
 	    } catch (URISyntaxException e) {
-		 System.out.println("Bugs...");
-		e.printStackTrace();
-		 return true; // should never happen
+			 return true; // should never happen
 	    }
 	     
 	}
@@ -197,10 +195,7 @@ public class Services {
 	      }
 	      return false;
 	}
-	
-	
-	
-	
+
 	public Response share(String secret, Resource res) throws URISyntaxException
 	{	
 	      if (incorrectSecret(secret)){
@@ -208,7 +203,7 @@ public class Services {
 	      }
 	      
 	      if (uriInvalid(res)){
-		    return new Response(false, "invalid resource URI");
+		    return new Response(false, "invalid resource");
 	      }
 	      
 	      if (uriIncorrect(res, "SHARE") || invalidChannelOwner(res)){
@@ -216,7 +211,7 @@ public class Services {
 	      }
 	      
 	      if (resourceInvalid(res)){
-		    return new Response(false, "invalid resource RES");
+		    return new Response(false, "invalid resource");
 	      }
 	      
 	      if (duplicateResource(res)) {
@@ -244,70 +239,108 @@ public class Services {
 	IOException, 
 	ParseException
 	{
-	      	printResourceList();
-		System.out.println("The query (resourceTemplate) to check is " + toQuery.toJSON().toString());
+//	      	printResourceList();
+	      	if (debug){
+		System.out.println("RECEIVED IN QUERY" + toQuery.toJSON().toString());
+	      	}
 		ArrayList<Resource> matched = getEntry(ResourceList, toQuery);
 		
 		//relay to be implemented properly
 		
-//		if(relay){
-//		   // make connection
-//		      JSONObject relayQuery = toQuery.toJSON();
-//		      JSONParser tempParser = new JSONParser();
-//
-//
-//		      for(Server sv : ServerList){
-//			    // send query
-//			    Socket clientSocket;
-//			    DataInputStream in;
-//			    DataOutputStream out;
-//
-//			    String tempHost = sv.getHostname();
-//			    int tempPort = sv.getPort();
-//			    clientSocket = new Socket(tempHost, tempPort);
-//			    in = new DataInputStream( clientSocket.getInputStream());
-//			    out = new DataOutputStream( clientSocket.getOutputStream());
-//			    JSONObject forRelay = new JSONObject();
-//			    forRelay.put("command","QUERY");
-//			    forRelay.put("relay",false);
-//			    forRelay.put("resourceTemplate",relayQuery);
-//			    out.writeUTF(forRelay.toJSONString());
-//			    JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
-//			    // once received
-//			    if (received.get("response").equals("success")){
-//				  System.out.println("adding in the relayed resources");
-//				  received.remove("response");
-//				  received.remove("resultSize");
-//				  matched.addAll(received.values());
-//			    }
-//			    System.out.println("added all of the relayed resource \n matched is now ");
-//			    System.out.println(matched.toString());
-//				
-//			  }
-//			    
-//		      }
+		if(relay){
+		   // make connection
+		      JSONObject relayQuery = toQuery.toJSON();
+		      JSONParser tempParser = new JSONParser();
+
+		      for(Server sv : ServerList){
+			    // send query
+			    Socket clientSocket;
+			    DataInputStream in;
+			    DataOutputStream out;
+
+			    String tempHost = sv.getHostname();
+			    int tempPort = sv.getPort();
+			    
+			    clientSocket = new Socket(tempHost, tempPort);
+			    in = new DataInputStream( clientSocket.getInputStream());
+			    out = new DataOutputStream( clientSocket.getOutputStream());
+			    
+			    // modify the JSON to take out channel / 
+			    relayQuery.put("channel","");
+			    relayQuery.put("owner","");
+			    
+			    JSONObject forRelay = new JSONObject();
+			    
+			    forRelay.put("command","QUERY");
+			    forRelay.put("relay",false);
+			    forRelay.put("resourceTemplate",relayQuery);
+			    
+			    out.writeUTF(forRelay.toJSONString());
+			    
+			    JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
+			    // once received
+			    String data;
+			    JSONObject tempResponse = new JSONObject();
+				
+			    do{
+				  if(in.available()>0) {
+					data = in.readUTF();
+
+					// Attempt to convert read data to JSON
+					tempResponse = (JSONObject) tempParser.parse(data);
+					
+					VerifyRequestObject verifier = new VerifyRequestObject();
+					if (verifier.checkTemplate(tempResponse)){
+					      Resource toAdd = new Resource(tempResponse,"QUERY");
+					      toAdd.setOwner("*");
+					      matched.add(toAdd);
+					}
+					if (debug){
+					System.out.println("(RECEIVED FROM RELAY)"  +tempResponse.toString());
+					}
+				  }
+				  
+				}while(tempResponse.containsKey("resultSize") == false);
+			    
+			    if (debug){
+            			    System.out.println("added all of the relayed resource \n matched is now ");
+            			    System.out.println(matched.toString());
+			    }
+			    clientSocket.close();
+			  }
+			    
+		      }
 	      Response queryResponse;
-	      if(matched.isEmpty())
-	    {
-	    	  queryResponse = new Response(false,"Object not found");
-	    } 
-	      else
-	      {
+	      if(matched.isEmpty()){
+	    	  queryResponse = new Response(false,"invalid resourceTemplate");
+	      } 
+	      else{
 		    queryResponse = new Response(true, null);
 		    queryResponse.setResourceList(matched);
+		    if(debug){
 		    System.out.println("Resources to be sent is "+ queryResponse.toJSON().toString());
+		    }
 	      }
-	    	  return queryResponse;
-		
+		    
+	    	  return queryResponse;		
 	}
+
 	
-	public Response fetch(Resource toFetch, DataOutputStream out) throws URISyntaxException, IOException{
-		URI uri = new URI(toFetch.getUri());
-		boolean sendFile = uri.isAbsolute(); 
+	public Response fetch(Resource toFetch, DataOutputStream out) throws  IOException{
 		Response toReturn = null;
+		URI uri = null;
+		try {
+			uri = new URI(toFetch.getUri());
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			toReturn = new Response(false, "invalid resourceTemplate");
+			return toReturn;
+		}
+		boolean sendFile = uri.isAbsolute(); 
+		sendFile = checkForFetch(toFetch);
 		if(sendFile)
 		{
-			String fileName = toFetch.getUri();
+			String fileName = uri.getPath();
 			System.out.println(fileName);
 		// Check if file exists
 		toReturn = sendFile(fileName, out, toFetch);
@@ -315,7 +348,7 @@ public class Services {
 		}
 		else{
 
-			return new Response(false,"Uri not correct");
+			return new Response(false,"missing resourceTemplate");
 			// Throw an error here..
 		}
 		return toReturn;  
@@ -324,7 +357,7 @@ public class Services {
 	
 	private Response sendFile(String fileName, DataOutputStream out, Resource toFetch) throws IOException
 	{
-
+		
 		File f = new File(fileName);
 		if(f.exists()){
 			JSONObject temp = new Response(true, null).toJSON();
@@ -368,27 +401,17 @@ public class Services {
 		}
 		return null;
 	}
-	public Response exchange(JSONArray list)
-	{
-		//Setting up and initialising variables
-		Response response;
-        String host=null;
-        int port=0;
-        Server serv_to_add=null;
 
-        for(int i=0;i<list.size();i++){
-            JSONObject x=(JSONObject) list.get(i);//Getting the server object as a JSON
-            host=x.get("hostname").toString();//Extracting the host name
-            port=Integer.parseInt(x.get("port").toString());//Extracting the port
-            serv_to_add=new Server(host,port);//Converting to a Server object
-            if(!(checkifduplicate(ServerList,serv_to_add))){//if server is not already on the list
-                System.out.println(ServerList.indexOf(serv_to_add));//Debug
-                 ServerList.add(serv_to_add);
-            }
-        }
-        response=new Response(true, null);
-	    return response;
+	public boolean checkForFetch(Resource toFetch){
+	      for (Entry<String, Resource> entry : ResourceList.entrySet()){
+		    if (entry.getValue().getChannel().equals(toFetch.getChannel()) &&
+			entry.getValue().getUri().equals(toFetch.getUri())){
+			  return true;
+		    }
+	      }
+	      return false;
 	}
+	
 	 public boolean checkifduplicate(ArrayList<Server> list, Server toCheck){
 	        for(Server x:list){
 	            if(x.getHostname().equals(toCheck.getHostname())&& x.getPort()==toCheck.getPort()){
@@ -441,69 +464,87 @@ public class Services {
         }
         else{
             response=new Response(false,"missing or invalid server list");
+            return response;
         }
-        response.setResponse("success");
-        response.setErrorMessage("");
-        return response;
+//        response.setResponse("success");
+//        response.setErrorMessage("");
+//        return response;
+		return response;
 
     }
-
-	
-	
-	
-	 public void exchange()
-		{
-	        //Setting up the variables
-			Random random = new Random();
-			int listSize = this.ServerList.size();
-			int index = 0;
-			if(listSize > 0)//if the serverlist is not empty
+		    public Response exchange(JSONArray list)
 			{
-	            //Selecting a random server
-	            index = random.nextInt(listSize);
-			    Server serv=ServerList.get(index);
-	            System.out.println("Selected server: "+serv.getHostname()+":"+serv.getPort());
-	            try{
-				    //opening a socket
-	                Socket socket = new Socket(serv.getHostname(),serv.getPort());
-	                int timeout=10000;
-	                socket.setSoTimeout(timeout);
-	                DataInputStream in = new DataInputStream( socket.getInputStream());
-	                DataOutputStream out =new DataOutputStream( socket.getOutputStream());
-	                System.out.println("connection established");
-
-	                //Setting up loop variables and JSON objects to be sent
-	                JSONObject server;
-	                JSONObject command=new JSONObject();
-	                JSONArray servers=new JSONArray();
-
-	                //Creating the JSON to send
-	                command.put("command","EXCHANGE");
-	                for(Server x : ServerList){
-	                    server = new JSONObject();
-	                    server.put("hostname",x.getHostname());
-	                    server.put("port",x.getPort());
-	                    servers.add(server);
-	                }
-	                command.put("serverList",servers);
-
-	                //Sending the JSON
-	                System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
-	                out.writeUTF(command.toJSONString());//send
-	                //String data = in.readUTF();   // read a line of data from the stream
-	                socket.close();
-	                System.out.println("Exchange socket closed");//Debug
-	        }
-			catch (UnknownHostException e){
-				ServerList.remove(index);
+				//Setting up and initialising variables
+				Response response;
+		        String host=null;
+		        int port=0;
+		        Server serv_to_add=null;
+		        for(int i=0;i<list.size();i++){
+		            JSONObject x=(JSONObject) list.get(i);//Getting the server object as a JSON
+		            host=x.get("hostname").toString();//Extracting the host name
+		            port=Integer.parseInt(x.get("port").toString());//Extracting the port
+		            serv_to_add=new Server(host,port);//Converting to a Server object
+		            if(!(checkifduplicate(ServerList,serv_to_add))){//if server is not already on the list
+		                //System.out.println(ServerList.indexOf(serv_to_add));//Debug
+		                 ServerList.add(serv_to_add);
+		            }
+		        }
+		        response=new Response(true, null);
+			    return response;
 			}
-			catch(IOException e){
-				ServerList.remove(index);
-			}
-			}
-			
+		public void exchange()
+				{
+			        //Setting up the variables
+					Random random = new Random();
+					int listSize = this.ServerList.size();
+					int index = 0;
+					if(listSize > 0)//if the serverlist is not empty
+					{
+			            //Selecting a random server
+			            index = random.nextInt(listSize);
+					    Server serv=ServerList.get(index);
+			            System.out.println("Selected server: "+serv.getHostname()+":"+serv.getPort());
+			            try{
+						    //opening a socket
+			                Socket socket = new Socket(serv.getHostname(),serv.getPort());
+			                int timeout=10000;
+			                socket.setSoTimeout(timeout);
+			                DataInputStream in = new DataInputStream( socket.getInputStream());
+			                DataOutputStream out =new DataOutputStream( socket.getOutputStream());
+			                System.out.println("connection established");
+
+			                //Setting up loop variables and JSON objects to be sent
+			                JSONObject server;
+			                JSONObject command=new JSONObject();
+			                JSONArray servers=new JSONArray();
+
+			                //Creating the JSON to send
+			                command.put("command","EXCHANGE");
+			                for(Server x : ServerList){
+			                    server = new JSONObject();
+			                    server.put("hostname",x.getHostname());
+			                    server.put("port",x.getPort());
+			                    servers.add(server);
+			                }
+			                command.put("serverList",servers);
+
+			                //Sending the JSON
+			                System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
+			                out.writeUTF(command.toJSONString());//send
+			                String data = in.readUTF();   // read a line of data from the stream
+							System.out.println(data);
+							socket.close();
+			               // System.out.println("Exchange socket closed");//Debug
+			        }
+					catch (UnknownHostException e){
+						ServerList.remove(index);
+					}
+					catch(IOException e){
+						ServerList.remove(index);
+					}
+					}
+					
 		}
-
 	// Support method for the Query method
 
 

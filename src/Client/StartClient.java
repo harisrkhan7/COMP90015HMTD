@@ -17,7 +17,9 @@ public class StartClient {
 		client.start();
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Server Not Found!");
+		} catch (NumberFormatException e){
+			System.out.println("Invalid Input");
 		}
 	}
 

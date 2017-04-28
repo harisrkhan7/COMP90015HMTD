@@ -28,7 +28,7 @@ public class ClientTCP extends Thread {
 		this.serverAddress = server;
 		this.newCommand = cmd;
 		this.parser = new JSONParser();
-		ClientSocket = new Socket(serverAddress, serverPort);
+		ClientSocket = new Socket(server, serverPort);
 	    System.out.println("Connection Established");
 	    this.in = new DataInputStream( ClientSocket.getInputStream());
 	    this.out =new DataOutputStream( ClientSocket.getOutputStream());
@@ -102,7 +102,12 @@ public class ClientTCP extends Thread {
 				waitForQuery(wait);
 				break;
 			case "FETCH":
-				waitForFetch();
+				try {
+					waitForFetch();
+				} catch (URISyntaxException e) {
+					// TODO Auto-generated catch block
+					System.out.println("Cannot Save! Response uri not valid.");
+				}
 				break;
 			default:			
 				}
@@ -127,15 +132,18 @@ public class ClientTCP extends Thread {
 		}
 
 	}
-	void waitForFetch() throws IOException, ParseException
+	void waitForFetch() throws IOException, ParseException, URISyntaxException
 	{
-		System.out.println("In wait for fetch");
 			JSONObject response = getResponse();
 			if(debug)
 			{System.out.println(response.toString());}
-			
+			String tempFileName = response.get("uri").toString();
+			URI uri = new URI(tempFileName);
+			String tempPath = uri.getPath();
+			String[] file = tempPath.split("/");
+			String fileNameToGet = file[file.length-1];
 		// The file location
-	String fileName = "client_files/"+response.get("name");
+	String fileName = "client_files/"+fileNameToGet;
 	
 	// Create a RandomAccessFile to read and write the output file.
 	RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");

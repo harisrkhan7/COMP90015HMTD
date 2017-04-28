@@ -12,8 +12,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import Client.Resource;
-
-
 public class ServerArgumentParser {
 	private CommandLine commandLine;
 	private String[] args;
@@ -24,7 +22,7 @@ public class ServerArgumentParser {
 		args = argument;
 	}
 	
-	void parseInput(){
+	void parseInput() throws NumberFormatException{
 	      
 	      
 	      Options svOptions = new Options();
@@ -68,19 +66,19 @@ public class ServerArgumentParser {
 	      }
 	      
 	}
-	private void updateCommands()
+	private void updateCommands() throws NumberFormatException
 	{
 		String advertisedHostName = commandLine.getOptionValue("advertisedhostname");
 		int connectioninterval;
 		if(commandLine.hasOption("connectionintervallimit") )
 		connectioninterval = Integer.parseInt(commandLine.getOptionValue("connectionintervallimit"));
 		else 
-			connectioninterval = 1000;
+			connectioninterval = Parameters.CONNECTION_INTERVAL;
 		int exchangeinterval;
 		if(commandLine.hasOption("exchangeinterval"))
 			exchangeinterval = Integer.parseInt(commandLine.getOptionValue("exchangeinterval"));
 		else 
-			exchangeinterval = 600000;
+			exchangeinterval = Parameters.EXCHANGE_INTERVAL;
 		int port = Integer.parseInt(commandLine.getOptionValue("port"));
 		String secret;
 		if(commandLine.hasOption("secret"))
