@@ -495,6 +495,7 @@ public class Services {
 		public void exchange()
 				{
 			        //Setting up the variables
+			//Get a random index
 					Random random = new Random();
 					int listSize = this.ServerList.size();
 					int index = 0;
@@ -504,37 +505,9 @@ public class Services {
 			            index = random.nextInt(listSize);
 					    Server serv=ServerList.get(index);
 			            System.out.println("Selected server: "+serv.getHostname()+":"+serv.getPort());
-			            try{
-						    //opening a socket
-			                Socket socket = new Socket(serv.getHostname(),serv.getPort());
-			                int timeout=10000;
-			                socket.setSoTimeout(timeout);
-			                DataInputStream in = new DataInputStream( socket.getInputStream());
-			                DataOutputStream out =new DataOutputStream( socket.getOutputStream());
-			                System.out.println("connection established");
-
-			                //Setting up loop variables and JSON objects to be sent
-			                JSONObject server;
-			                JSONObject command=new JSONObject();
-			                JSONArray servers=new JSONArray();
-
-			                //Creating the JSON to send
-			                command.put("command","EXCHANGE");
-			                for(Server x : ServerList){
-			                    server = new JSONObject();
-			                    server.put("hostname",x.getHostname());
-			                    server.put("port",x.getPort());
-			                    servers.add(server);
-			                }
-			                command.put("serverList",servers);
-
-			                //Sending the JSON
-			                System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
-			                out.writeUTF(command.toJSONString());//send
-			                String data = in.readUTF();   // read a line of data from the stream
-							System.out.println(data);
-							socket.close();
-			               // System.out.println("Exchange socket closed");//Debug
+			            try{	                
+			                JSONObject command = ServerListToJSON();
+			                sendExchange(command, serv);			                
 			        }
 					catch (UnknownHostException e){
 						ServerList.remove(index);
@@ -546,7 +519,40 @@ public class Services {
 					
 		}
 	// Support method for the Query method
+		JSONObject ServerListToJSON()
+		{
+			//Setting up loop variables and JSON objects to be sent
+            JSONObject server;
+            JSONObject command=new JSONObject();
+            JSONArray servers=new JSONArray();
 
+            //Creating the JSON to send
+            command.put("command","EXCHANGE");
+            for(Server x : ServerList){
+                server = new JSONObject();
+                server.put("hostname",x.getHostname());
+                server.put("port",x.getPort());
+                servers.add(server);
+            }
+            command.put("serverList",servers);
+            //Sending the JSON
+            return command;
+		}
+		void sendExchange(JSONObject command, Server serv) throws UnknownHostException, IOException
+		{
+		    //opening a socket
+            Socket socket = new Socket(serv.getHostname(),serv.getPort());
+            int timeout=10000;
+            socket.setSoTimeout(timeout);
+            DataInputStream in = new DataInputStream( socket.getInputStream());
+            DataOutputStream out =new DataOutputStream( socket.getOutputStream());
+        		System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
+            out.writeUTF(command.toJSONString());//send
+            String data = in.readUTF();   // read a line of data from the stream
+			System.out.println(data);
+			socket.close();
+           // System.out.println("Exchange socket closed");//Debug	
+        }
 
 	    public ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
 			  Resource templateResource){

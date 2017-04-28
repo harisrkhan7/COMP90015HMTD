@@ -56,6 +56,9 @@ public class ClientTCP extends Thread {
 	     System.out.println("EOF:"+e.getMessage());
 	  }catch (IOException e){
 	     System.out.println("readline:"+e.getMessage());
+	  }catch (NullPointerException e)
+	  {
+		  System.out.println("");// To debug
 	  }
 	  finally {
 	     if(ClientSocket!=null) try {
