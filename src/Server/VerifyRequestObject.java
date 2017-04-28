@@ -48,7 +48,7 @@ public class VerifyRequestObject {
 		{
 			convert = inputResource.containsKey("serverList");
 		}
-		else 
+		else
 		{
 			convert = false;
 		}

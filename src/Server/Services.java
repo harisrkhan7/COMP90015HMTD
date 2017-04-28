@@ -303,16 +303,34 @@ public class Services {
 	
 	public Response fetch(Resource toFetch, DataOutputStream out) throws URISyntaxException, IOException{
 		URI uri = new URI(toFetch.getUri());
-		if(uri.isAbsolute())
+		boolean sendFile = uri.isAbsolute(); 
+		Response toReturn = null;
+		if(sendFile)
 		{
-		System.out.println(uri.toString());
-		JSONObject temp = new Response(true, null).toJSON();
-		out.writeUTF(temp.toJSONString());
-		String fileName = toFetch.getUri();
+			String fileName = toFetch.getUri();
+			System.out.println(fileName);
 		// Check if file exists
-		File f = new File("server_files/"+fileName);
+		toReturn = sendFile(fileName, out, toFetch);
+
+		}
+		else{
+
+			return new Response(false,"Uri not correct");
+			// Throw an error here..
+		}
+		return toReturn;  
+		
+	}
+	
+	private Response sendFile(String fileName, DataOutputStream out, Resource toFetch) throws IOException
+	{
+
+		File f = new File(fileName);
 		if(f.exists()){
-			
+			JSONObject temp = new Response(true, null).toJSON();
+			out.writeUTF(temp.toJSONString());
+			if(debug)
+			{System.out.println("Sent:"+temp.toJSONString());}
 			// Send this back to client so that they know what the file is.
 			JSONObject trigger = toFetch.toJSON();
 			trigger.put("file_size",f.length());
@@ -344,17 +362,12 @@ public class Services {
 				e.printStackTrace();
 			}
 		}
-		return null;
+		else
+		{
+			return new Response(false,"File Not found");
 		}
-		else{
-
-			return new Response(false,"Failed to send");
-			// Throw an error here..
-		}  
-		
+		return null;
 	}
-
-
 	public Response exchange(JSONArray list)
 	{
 		//Setting up and initialising variables

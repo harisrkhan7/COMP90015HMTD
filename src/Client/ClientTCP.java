@@ -76,8 +76,7 @@ public class ClientTCP extends Thread {
 		String data = in.readUTF();
 		// Attempt to convert read data to JSON
 		JSONObject response = (JSONObject) parser.parse(data);
-		if(debug)
-		{	System.out.println("RECEIVED:" + response.toString());}
+		System.out.println("RECEIVED:" + response.toString());
 		return response;
 		
 	}
@@ -89,7 +88,8 @@ public class ClientTCP extends Thread {
 	    String data;
 		out.writeUTF(newCommand.toJSONString( ));
 		out.flush();
-		System.out.println("Sent:" + newCommand.toJSONString());
+		if(debug)
+		{System.out.println("Sent:" + newCommand.toJSONString());}
 		return commandText;
 		
 	}
@@ -135,7 +135,7 @@ public class ClientTCP extends Thread {
 			{System.out.println(response.toString());}
 			
 		// The file location
-	String fileName = "client_files/"+response.get("uri");
+	String fileName = "client_files/"+response.get("name");
 	
 	// Create a RandomAccessFile to read and write the output file.
 	RandomAccessFile downloadingFile = new RandomAccessFile(fileName, "rw");
