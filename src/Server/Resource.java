@@ -1,5 +1,6 @@
 package Server;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 
 import org.json.simple.JSONArray;
@@ -25,7 +26,7 @@ public class Resource {
 		this.Tags = getArrayList("tags");
 		this.Channel = getParameter("channel");
 		this.Owner = getParameter("owner");
-		this.Server = new Server("localhost",123);
+		this.Server = new Server(BroadcastServer.servername,BroadcastServer.port);
 		this.uri = getParameter("uri");
 		removeWhiteSpaces();
 		}
@@ -59,7 +60,7 @@ public class Resource {
 	// Deep copy
 	public Resource(Resource toCopy){
 	      
-	      
+	    InetAddress localpc = null;
 		this.Name = toCopy.getName();
 		this.Description = toCopy.getDescription();
 		ArrayList<String> nTags = new ArrayList<String>();
@@ -68,8 +69,8 @@ public class Resource {
 		}
 		this.Tags = nTags;
 		this.Channel = toCopy.getChannel();
+		this.Server = new Server(BroadcastServer.servername,BroadcastServer.port);
 		this.Owner = toCopy.getOwner();
-		this.Server = new Server("localhost",123);
 		this.uri = toCopy.getUri();
 	}
 
@@ -212,6 +213,7 @@ public class Resource {
 	private ArrayList<String> getArrayList(String label)
 	{
 		ArrayList<String> returnList = new ArrayList<String>();
+			try{
 			if(toConvert.containsKey(label))
 			{
 				JSONArray list =  (JSONArray) toConvert.get(label);
@@ -221,6 +223,11 @@ public class Resource {
 					returnList.add(testlist[i].toString());
 				
 				}
+			}
+			}catch(NullPointerException e)
+			{
+				return returnList;
+				
 			}
 			return returnList;
 	}

@@ -93,8 +93,18 @@ public class Connection extends Thread {
 		case "QUERY":
 			System.out.println("QUERY COMMAND RECEIVED");//debug
 			boolean relay = Parameters.RELAY;
+			String relayText;
 			if(command.containsKey("relay"))
-				relay = (boolean)command.get("relay");
+				{
+				relayText = command.get("relay").toString();
+				if(relayText.equals("true"))
+				{
+					relay = true;
+				}
+				else{
+					relay = false;
+				}
+				}
 			Resource temp = new Resource(command,commandText);
 			reply = availableServices.
 					query(relay, temp);

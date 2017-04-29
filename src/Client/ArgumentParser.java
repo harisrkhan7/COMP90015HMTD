@@ -202,13 +202,13 @@ public class ArgumentParser {
 	
 	private void updateTempResource()
 	{
-		String name = commandLine.getOptionValue("name");
+		String name = getValue("name");
 		String[] tags = commandLine.getOptionValues("tags");
-		String description = commandLine.getOptionValue("description");
-		String uri = commandLine.getOptionValue("uri");
-		String channel = commandLine.getOptionValue("channel");
-		String owner = commandLine.getOptionValue("owner");
-		String host = commandLine.getOptionValue("host");
+		String description = getValue("description");
+		String uri = getValue("uri");
+		String channel = getValue("channel");
+		String owner = getValue("owner");
+		String host = getValue("host");
 		int port = Integer.parseInt(commandLine.getOptionValue("port"));
 		System.out.println("host:"+host+"port"+port);
 		Server ezserver = new Server(host,port);
@@ -260,5 +260,9 @@ public class ArgumentParser {
 	{
 		boolean temp = commandLine.hasOption("debug");
 		return temp;
+	}
+	String getValue(String label)
+	{
+		return (commandLine.getOptionValue(label)==null?"":commandLine.getOptionValue(label));
 	}
 }

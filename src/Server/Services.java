@@ -230,9 +230,6 @@ public class Services {
 		}
 		return false;
 	}
-
-	
-	
 	
 	public Response query(Boolean relay, Resource toQuery) throws 
 	UnknownHostException,
@@ -306,7 +303,6 @@ public class Services {
 	    VerifyRequestObject verifier = new VerifyRequestObject();
 	    ArrayList<Resource> toReturn = new ArrayList<Resource>();
 	    do{
-		  if(in.available()>0) {
 			data = in.readUTF();
 			// Attempt to convert read data to JSON
 			tempResponse = (JSONObject) tempParser.parse(data);
@@ -316,11 +312,11 @@ public class Services {
 			      Resource toAdd = new Resource(tempResponse,"QUERY");
 			      toAdd.setOwner("*");
 			      toReturn.add(toAdd);
+			      System.out.println("Resource added to list");
 			}
 			if (debug){
-			System.out.println("RECEIVED:"+tempResponse.toString());
+			System.out.println("Received:"+tempResponse.toString());
 			}
-		  }
 		  
 		} while (tempResponse.containsKey("resultSize") == false);
 	    return toReturn;
@@ -342,17 +338,23 @@ public class Services {
     // modify the JSON to take out channel / 
     relayQuery.put("channel","");
     relayQuery.put("owner","");
-    
     JSONObject forRelay = new JSONObject();
     forRelay.put("command","QUERY");
-    forRelay.put("relay",false);
+    forRelay.put("relay","false");
     forRelay.put("resourceTemplate",relayQuery);
-    
     out.writeUTF(forRelay.toJSONString());
+    if(debug)
+    {
+    	System.out.println("Sent:"+forRelay.toString());
+    }
     // receiving query and see if success
     JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
+    if(debug)
+    {
+    	System.out.println("Received:"+received.toString());
+    }
     // once received
-    
+
     if(received.containsKey("response")){
 	  if(received.get("response").equals("success")){
 		  toReturn = receiveQueryResources(in,tempParser);
@@ -564,16 +566,21 @@ public class Services {
 				  Resource templateResource){
 			    // initialize matching array to be return
 			    ArrayList<Resource> match = new ArrayList<Resource>();
+			    Resource resourcefromList = null;
+			    Resource tempResource = null;
 			    // Looping through the ResourceList
 			    for (Entry<String, Resource> entry : ResourceList.entrySet()){
-				  Resource resourcefromList = entry.getValue();
+				  resourcefromList = entry.getValue();
 				  if (matchChannel(templateResource,resourcefromList) &&
 					      matchOwner(templateResource, resourcefromList) &&
 					      matchTags(templateResource, resourcefromList) && 
 					      matchURI(templateResource, resourcefromList) &&
 					      matchNameDesc(templateResource,resourcefromList))
 				  {  
-					match.add(entry.getValue());
+					tempResource = new Resource(resourcefromList);
+					
+					tempResource.setOwner("*");
+					match.add(tempResource);
 					System.out.println("MATCHED one resource, adding...");//debug
 				  }
 
@@ -584,8 +591,11 @@ public class Services {
 	    
 	    
 		// Support method for the Query method
-			public boolean matchChannel(Resource res1, Resource res2){
-			      if (res1.getChannel().equals("")) return true;
+			public boolean matchChannel(Resource res1, Resource res2){  
+				if (res1.getChannel().equals("")){
+					System.out.println("Channel Matched null");
+					return true;
+				}
 			      if (res1.getChannel().equals(res2.getChannel())){
 				    System.out.println("ChannelMatched");
 				    return true;
@@ -594,11 +604,15 @@ public class Services {
 			}
 			
 			public boolean matchOwner(Resource res1, Resource res2){
-			      if (res1.getOwner().equals(res2.getOwner())){
+				if (res1.getOwner().equals("")) {
+					System.out.println("Owner Matched null");
+					return true;
+							}
+				if (res1.getOwner().equals(res2.getOwner())){
 				    System.out.println("Owner matched");
 				    return true;
 			      }
-			      if (res1.getOwner().equals("")) return true;
+			      
 			      return false;
 			}
 			
@@ -612,18 +626,25 @@ public class Services {
 			      ArrayList<String> tagList2 = res2.getTags();
 //			      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
 //			      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
+			      System.out.println(tagList1);
+			      System.out.println(tagList2);
 			      
-			      
-			      
+			      boolean match = false;
 			      for (String tag : tagList1){
-				    boolean match = false;
-				    System.out.println("checking the resource 1 tag "+tag);
-				    for (String listString : tagList2){
-					  if (StringUtils.equalsIgnoreCase(tag, listString)) match = true;
+			    	  match = false;
+					   for (String listString : tagList2){
+					  if (StringUtils.equalsIgnoreCase(tag, listString)) {
+						  match = true;
+					  }
 				    }
 				    if(match)
-				    System.out.println("there is match for " + tag);
-				    if(match == false) return false;
+				    {
+				    	System.out.println("there is match for " + tag);
+				    }
+				    else 
+				    	{
+				    	return false;
+				    	}
 			      }
 			      System.out.println("All Tags matches");
 			      return true;
@@ -631,7 +652,11 @@ public class Services {
 			
 			
 			public boolean matchURI(Resource template, Resource res){
-			      if(template.getUri().equals("")) return true;	      
+			      if(template.getUri().equals(""))
+			    	  {
+			    	  System.out.println("URI matched:null");
+			    	  return true;	      
+			    	  }
 			      String uriTemplate = template.getUri();
 			      String resTemplate = res.getUri();
 
@@ -652,6 +677,7 @@ public class Services {
 			      String resDesc = res.getDescription();
 
 			      if(templateName.equals("") && templateDesc.equals("")){
+			    	  System.out.println("name and description are null");
 				    return true;
 			      }
 			      

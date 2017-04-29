@@ -35,7 +35,9 @@ public class ServerTCP {
 		try
 		{
 			listenSocket = new ServerSocket(serverPort, 0 , hostname);
-			System.out.println(listenSocket.getInetAddress());
+			BroadcastServer temp = 
+			new BroadcastServer(listenSocket.getInetAddress().toString(),listenSocket.getLocalPort());
+			System.out.println(temp.getBroadcastServer());
 			while(true) {
 				System.out.println("Server listening for a connection");
 				Socket clientSocket = listenSocket.accept();

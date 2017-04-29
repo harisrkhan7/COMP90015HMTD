@@ -22,9 +22,9 @@ public class Resource {
 		this.EzServer = null;
 		this.uri = uri;
 		if(channel == null)
-			this.Channel = " ";
+			this.Channel = "";
 		if(owner == null)
-			this.Owner = " ";
+			this.Owner = "";
 		
 	}
 	public Resource(String name, String[] tags,
