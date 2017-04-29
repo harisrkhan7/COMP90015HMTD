@@ -10,14 +10,12 @@ public class PeriodicRemove extends TimerTask {
 	}
 	public void run()
 	{
-		while(true)
-		{
+	
 		System.out.println("Remove Executing");
 		synchronized(checkRequest){
 			checkRequest.periodicRemove();
 		}
 		System.out.println("Remove Executed");
-		}
 	}
 
 }

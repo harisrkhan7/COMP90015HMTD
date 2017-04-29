@@ -13,4 +13,6 @@ public class Parameters {
 		public final static int PERIODIC_REMOVE_START_DELAY = 600000;
 		
 		public final static int EXCHANGE_START_DELAY = 10000;
+		
+		public final static boolean RELAY = true;
 }

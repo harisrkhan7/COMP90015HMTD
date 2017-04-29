@@ -86,9 +86,13 @@ public class ClientTCP extends Thread {
 	String Send() throws IOException
 	{
 		
-	   
 	    String commandText = newCommand.get("command").toString();
 	    String data;
+	    
+	    if(commandText.equals("QUERY"))
+	    {
+	    	newCommand.put("relay", "true");
+	    }
 		out.writeUTF(newCommand.toJSONString( ));
 		out.flush();
 		if(debug)

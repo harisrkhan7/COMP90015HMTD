@@ -87,30 +87,33 @@ public class Connection extends Thread {
 		switch(commandText)
 		{
 		case "FETCH": 
-			System.out.println("FETCH COMMAND RECEIVED");
+			System.out.println("FETCH COMMAND RECEIVED");//debug
 			reply = availableServices.fetch(new Resource(command,commandText), out);
 			break;
 		case "QUERY":
-			System.out.println("QUERY COMMAND RECEIVED");
+			System.out.println("QUERY COMMAND RECEIVED");//debug
+			boolean relay = Parameters.RELAY;
+			if(command.containsKey("relay"))
+				relay = (boolean)command.get("relay");
 			Resource temp = new Resource(command,commandText);
 			reply = availableServices.
-					query(false, temp);
+					query(relay, temp);
 			break;
 		case "PUBLISH":
-			System.out.println("PUBLISH COMMAND RECEIVED");
+			System.out.println("PUBLISH COMMAND RECEIVED");//debug
 			reply = availableServices.publish(new Resource(command,commandText));
 			break;	
 		case "SHARE":
-			System.out.println("SHARE COMMAND RECEIVED");
+			System.out.println("SHARE COMMAND RECEIVED");//debug
 			reply = availableServices.share(command.get("secret").toString(),
 					new Resource(command,commandText));
 			break;	
 		case "REMOVE":
-			System.out.println("REMOVE COMMAND RECEIVED");
+			System.out.println("REMOVE COMMAND RECEIVED");//debug
 			reply = availableServices.remove(new Resource(command,commandText));
 			break;	
 		case "EXCHANGE":
-			System.out.println("EXCHANGE COMMAND RECEIVED");
+			System.out.println("EXCHANGE COMMAND RECEIVED");//debug
 			reply = initiateExchange(command);
 			break;
 		default:

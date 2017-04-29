@@ -243,26 +243,32 @@ public class Services {
 		//relay to be implemented properly
 		if(relay){
 			   // make connection
-			    ArrayList<Resource> temp = new ArrayList<Resource>();  
-				for(Server sv : ServerList){
-				    // send query
-			    	  try{
-			    		  temp = relaySend(toQuery, sv);
-			    		  matched.addAll(temp);
-			    	  }catch(IOException | ParseException e )
-			    	  {
-			    		  continue;
-			    	  }
-			      }      
-	      if(matched.isEmpty()){
-	    	  queryResponse = new Response(false,"invalid resourceTemplate");
-	      } 
-	      else{
-		    queryResponse = new Response(true, null);
-		    queryResponse.setResourceList(matched);
-	      }	
-	}
-		return queryResponse;
+		      ArrayList<Resource> temp = new ArrayList<Resource>();  
+		      for(Server sv : ServerList){
+			    // send query
+			    try{
+				  temp = relaySend(toQuery, sv);
+				  matched.addAll(temp);
+			    }catch(IOException | ParseException e )
+			    {
+				  continue;
+			    }
+		      }      
+            	      if(matched.isEmpty()){
+            	    	  queryResponse = new Response(false,"invalid resourceTemplate");
+            	      } 
+            	      else{
+            		    queryResponse = new Response(true, null);
+            		    queryResponse.setResourceList(matched);
+            	      }	
+		}
+		if(matched.isEmpty()){
+		      queryResponse = new Response(false, "invalid resourceTemplate");
+		}else{
+		      queryResponse = new Response(true,null);
+		      queryResponse.setResourceList(matched);
+		}
+            		return queryResponse;
 	}
 	public Response fetch(Resource toFetch, DataOutputStream out) throws  IOException{
 		Response toReturn = null;
@@ -554,121 +560,113 @@ public class Services {
            // System.out.println("Exchange socket closed");//Debug	
         }
 
-	    public ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
-			  Resource templateResource){
-		    // initialize matching array to be return
-		    ArrayList<Resource> match = new ArrayList<Resource>();
-		    // Looping through the ResourceList
-		    for (Entry<String, Resource> entry : ResourceList.entrySet()){
-			  Resource resourcefromList = entry.getValue();
-			  if (matchChannel(templateResource,resourcefromList) &&
-				      matchOwner(templateResource, resourcefromList) &&
-				      matchTags(templateResource, resourcefromList) && 
-				      matchURI(templateResource, resourcefromList) &&
-				      matchNameDesc(templateResource,resourcefromList))
-			  {  
-				match.add(entry.getValue());
-				//System.out.println("MATCHED, adding...");//debug
-			  }
+		  public ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
+				  Resource templateResource){
+			    // initialize matching array to be return
+			    ArrayList<Resource> match = new ArrayList<Resource>();
+			    // Looping through the ResourceList
+			    for (Entry<String, Resource> entry : ResourceList.entrySet()){
+				  Resource resourcefromList = entry.getValue();
+				  if (matchChannel(templateResource,resourcefromList) &&
+					      matchOwner(templateResource, resourcefromList) &&
+					      matchTags(templateResource, resourcefromList) && 
+					      matchURI(templateResource, resourcefromList) &&
+					      matchNameDesc(templateResource,resourcefromList))
+				  {  
+					match.add(entry.getValue());
+					System.out.println("MATCHED one resource, adding...");//debug
+				  }
 
-		    }
-		    return match;
-	    }
-
-    
-    
-	// Support method for the Query method
-		public boolean matchChannel(Resource res1, Resource res2){
-		      if (res1.getChannel().equals("")) return true;
-		      if (res1.getChannel().equals(res2.getChannel())){
-			    System.out.println("ChannelMatched");
-			    return true;
-		      }
-		      return false;
-		}
-		
-		public boolean matchOwner(Resource res1, Resource res2){
-		      if (res1.getOwner().equals(res2.getOwner())){
-			    System.out.println("Owner matched");
-			    return true;
-		      }
-		      if (res1.getOwner().equals("")) return true;
-		      return false;
-		}
-		
-		// have to check that res1 tags are all in res2 tags
-		// or res2 have all the tags res1 have
-		public boolean matchTags(Resource res1, Resource res2){
-		      ArrayList<String> tagList1 = res1.getTags();
-		      
-		      if(tagList1.isEmpty()) return true;
-		      
-		      ArrayList<String> tagList2 = res2.getTags();
-//		      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
-//		      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
-		      
-		      
-		      
-		      boolean abort = false;
-		      for (String tag : tagList1){
-			    System.out.println("checking the resource 1 tag "+tag);
-			    if (containString(tag,tagList2) == false) abort =  true;
-			    if(abort) {
-				  System.out.println("ABORT");
-				  return false;
 			    }
-		      }
-		      System.out.println("Tags matches");
-		      return true;
-		}
-		
-		
-		public boolean matchURI(Resource template, Resource res){
-		      if(template.getUri().equals("")) return true;	      
-		      String uriTemplate = template.getUri();
-		      String resTemplate = res.getUri();
+			    return match;
+		    }
 
-		      
-		      if (uriTemplate.equals(resTemplate)){
-			    System.out.println("URI matched");
-			    return true;
-		      }
-		      return false;
-		}
-		
-		public boolean containString(String check,ArrayList<String> list){
-			    for (String str : list){
-			        if (check.equalsIgnoreCase(str)){
-//			              System.out.println("matched returning TRUE");
-			            return true;
-			         }
-			     }
-			    return false;
+	    
+	    
+		// Support method for the Query method
+			public boolean matchChannel(Resource res1, Resource res2){
+			      if (res1.getChannel().equals("")) return true;
+			      if (res1.getChannel().equals(res2.getChannel())){
+				    System.out.println("ChannelMatched");
+				    return true;
+			      }
+			      return false;
+			}
+			
+			public boolean matchOwner(Resource res1, Resource res2){
+			      if (res1.getOwner().equals(res2.getOwner())){
+				    System.out.println("Owner matched");
+				    return true;
+			      }
+			      if (res1.getOwner().equals("")) return true;
+			      return false;
+			}
+			
+			// have to check that res1 tags are all in res2 tags
+			// or res2 have all the tags res1 have
+			public boolean matchTags(Resource res1, Resource res2){
+			      ArrayList<String> tagList1 = res1.getTags();
+			      
+			      if(tagList1.isEmpty()) return true;
+			      
+			      ArrayList<String> tagList2 = res2.getTags();
+//			      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
+//			      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
+			      
+			      
+			      
+			      for (String tag : tagList1){
+				    boolean match = false;
+				    System.out.println("checking the resource 1 tag "+tag);
+				    for (String listString : tagList2){
+					  if (StringUtils.equalsIgnoreCase(tag, listString)) match = true;
+				    }
+				    if(match)
+				    System.out.println("there is match for " + tag);
+				    if(match == false) return false;
+			      }
+			      System.out.println("All Tags matches");
+			      return true;
+			}
+			
+			
+			public boolean matchURI(Resource template, Resource res){
+			      if(template.getUri().equals("")) return true;	      
+			      String uriTemplate = template.getUri();
+			      String resTemplate = res.getUri();
 
+			      
+			      if (uriTemplate.equals(resTemplate)){
+				    System.out.println("URI matched");
+				    return true;
+			      }
+			      return false;
+			}
+			
+
+			
+			public boolean matchNameDesc(Resource template, Resource res){
+			      String templateName = template.getName();
+			      String resName = res.getName();
+			      String templateDesc = template.getDescription();
+			      String resDesc = res.getDescription();
+
+			      if(templateName.equals("") && templateDesc.equals("")){
+				    return true;
+			      }
+			      
+			      if ((!templateName.equals("")) && 
+					  StringUtils.containsIgnoreCase(resName,templateName)){
+				    return true;
+			      }
+
+			      if ((!templateDesc.equals("")) &&
+					  StringUtils.containsIgnoreCase(resDesc,templateDesc)){
+				    return true;
+			      }
+			      return false;
 			}
 
-		
-		public boolean matchNameDesc(Resource template, Resource res){
-		      String templateName = template.getName();
-		      String resName = res.getName();
-		      String templateDesc = template.getDescription();
-		      String resDesc = res.getDescription();
-
-		      if(templateName.equals("") && templateDesc.equals("")){
-			    return true;
-		      }
-		      
-		      if (!templateName.equals("") && 
-				  StringUtils.containsIgnoreCase(resName,templateName)){
-			    return true;
-		      }
-
-		      if (!templateDesc.equals("") &&
-				  StringUtils.containsIgnoreCase(resDesc,templateDesc)){
-			    return true;
-		      }
-		      return false;
-		}
 
 	
 	
