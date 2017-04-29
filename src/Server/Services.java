@@ -243,26 +243,32 @@ public class Services {
 		//relay to be implemented properly
 		if(relay){
 			   // make connection
-			    ArrayList<Resource> temp = new ArrayList<Resource>();  
-				for(Server sv : ServerList){
-				    // send query
-			    	  try{
-			    		  temp = relaySend(toQuery, sv);
-			    		  matched.addAll(temp);
-			    	  }catch(IOException | ParseException e )
-			    	  {
-			    		  continue;
-			    	  }
-			      }      
-	      if(matched.isEmpty()){
-	    	  queryResponse = new Response(false,"invalid resourceTemplate");
-	      } 
-	      else{
-		    queryResponse = new Response(true, null);
-		    queryResponse.setResourceList(matched);
-	      }	
-	}
-		return queryResponse;
+		      ArrayList<Resource> temp = new ArrayList<Resource>();  
+		      for(Server sv : ServerList){
+			    // send query
+			    try{
+				  temp = relaySend(toQuery, sv);
+				  matched.addAll(temp);
+			    }catch(IOException | ParseException e )
+			    {
+				  continue;
+			    }
+		      }      
+            	      if(matched.isEmpty()){
+            	    	  queryResponse = new Response(false,"invalid resourceTemplate");
+            	      } 
+            	      else{
+            		    queryResponse = new Response(true, null);
+            		    queryResponse.setResourceList(matched);
+            	      }	
+		}
+		if(matched.isEmpty()){
+		      queryResponse = new Response(false, "invalid resourceTemplate");
+		}else{
+		      queryResponse = new Response(true,null);
+		      queryResponse.setResourceList(matched);
+		}
+            		return queryResponse;
 	}
 	public Response fetch(Resource toFetch, DataOutputStream out) throws  IOException{
 		Response toReturn = null;
@@ -321,39 +327,39 @@ public class Services {
 	}
     ArrayList<Resource> relaySend(Resource toQuery, Server sv) throws UnknownHostException, IOException, ParseException
     {
-    	ArrayList<Resource> toReturn = new ArrayList<Resource>();
-    	JSONObject relayQuery = toQuery.toJSON();
-	JSONParser tempParser = new JSONParser();
-    	Socket clientSocket;
-    DataInputStream in;
-    DataOutputStream out;
-    String tempHost = sv.getHostname();
-    int tempPort = sv.getPort();
-    
-    clientSocket = new Socket(tempHost, tempPort);
-    in = new DataInputStream( clientSocket.getInputStream());
-    out = new DataOutputStream( clientSocket.getOutputStream());
-    // modify the JSON to take out channel / 
-    relayQuery.put("channel","");
-    relayQuery.put("owner","");
-    
-    JSONObject forRelay = new JSONObject();
-    forRelay.put("command","QUERY");
-    forRelay.put("relay",false);
-    forRelay.put("resourceTemplate",relayQuery);
-    
-    out.writeUTF(forRelay.toJSONString());
-    // receiving query and see if success
-    JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
-    // once received
-    
-    if(received.containsKey("response")){
-	  if(received.get("response").equals("success")){
-		  toReturn = receiveQueryResources(in,tempParser);
-	 }
-    }
-    clientSocket.close();
-    return toReturn;
+	  ArrayList<Resource> toReturn = new ArrayList<Resource>();
+	  JSONObject relayQuery = toQuery.toJSON();
+	  JSONParser tempParser = new JSONParser();
+	  Socket clientSocket;
+          DataInputStream in;
+          DataOutputStream out;
+          String tempHost = sv.getHostname();
+          int tempPort = sv.getPort();
+          
+          clientSocket = new Socket(tempHost, tempPort);
+          in = new DataInputStream( clientSocket.getInputStream());
+          out = new DataOutputStream( clientSocket.getOutputStream());
+          // modify the JSON to take out channel / 
+          relayQuery.put("channel","");
+          relayQuery.put("owner","");
+          
+          JSONObject forRelay = new JSONObject();
+          forRelay.put("command","QUERY");
+          forRelay.put("relay",false);
+          forRelay.put("resourceTemplate",relayQuery);
+          
+          out.writeUTF(forRelay.toJSONString());
+          // receiving query and see if success
+          JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
+          // once received
+          
+          if(received.containsKey("response")){
+      	  if(received.get("response").equals("success")){
+      		  toReturn = receiveQueryResources(in,tempParser);
+      	 }
+          }
+          clientSocket.close();
+          return toReturn;
     }
 	private Response sendFile(String fileName, DataOutputStream out, Resource toFetch) throws IOException
 	{
@@ -568,7 +574,7 @@ public class Services {
 				      matchNameDesc(templateResource,resourcefromList))
 			  {  
 				match.add(entry.getValue());
-				//System.out.println("MATCHED, adding...");//debug
+				System.out.println("MATCHED one resource, adding...");//debug
 			  }
 
 		    }
@@ -609,16 +615,17 @@ public class Services {
 		      
 		      
 		      
-		      boolean abort = false;
 		      for (String tag : tagList1){
+			    boolean match = false;
 			    System.out.println("checking the resource 1 tag "+tag);
-			    if (containString(tag,tagList2) == false) abort =  true;
-			    if(abort) {
-				  System.out.println("ABORT");
-				  return false;
+			    for (String listString : tagList2){
+				  if (StringUtils.equalsIgnoreCase(tag, listString)) match = true;
 			    }
+			    if(match)
+			    System.out.println("there is match for " + tag);
+			    if(match == false) return false;
 		      }
-		      System.out.println("Tags matches");
+		      System.out.println("All Tags matches");
 		      return true;
 		}
 		
@@ -636,16 +643,6 @@ public class Services {
 		      return false;
 		}
 		
-		public boolean containString(String check,ArrayList<String> list){
-			    for (String str : list){
-			        if (check.equalsIgnoreCase(str)){
-//			              System.out.println("matched returning TRUE");
-			            return true;
-			         }
-			     }
-			    return false;
-
-			}
 
 		
 		public boolean matchNameDesc(Resource template, Resource res){
@@ -658,12 +655,12 @@ public class Services {
 			    return true;
 		      }
 		      
-		      if (!templateName.equals("") && 
+		      if ((!templateName.equals("")) && 
 				  StringUtils.containsIgnoreCase(resName,templateName)){
 			    return true;
 		      }
 
-		      if (!templateDesc.equals("") &&
+		      if ((!templateDesc.equals("")) &&
 				  StringUtils.containsIgnoreCase(resDesc,templateDesc)){
 			    return true;
 		      }
