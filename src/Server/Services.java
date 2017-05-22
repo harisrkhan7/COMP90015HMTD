@@ -354,8 +354,10 @@ public class Services {
 		//relay to be implemented properly
 		if(relay){
 			   // make connection
+
 		      ArrayList<ResourceServer> temp = new ArrayList<ResourceServer>();  
 		      for(ObjectServer sv : ServerList){
+
 			    // send query
 			    try{
 				  temp = relaySend(toQuery, sv);
@@ -477,6 +479,7 @@ public class Services {
     }
     clientSocket.close();
     return toReturn;
+
     }
 	private Response sendFile(String fileName, DataOutputStream out, ResourceServer toFetch) throws IOException
 	{
@@ -776,8 +779,7 @@ public class Services {
 			    	  return true;	      
 			    	  }
 			      String uriTemplate = template.getUri();
-			      String resTemplate = res.getUri();
-
+			      String resTemplate = res.getUri();	
 			      
 			      if (uriTemplate.equals(resTemplate)){
 //				    System.out.println("URI matched");
@@ -803,7 +805,6 @@ public class Services {
 					  StringUtils.containsIgnoreCase(resName,templateName)){
 				    return true;
 			      }
-
 			      if ((!templateDesc.equals("")) &&
 					  StringUtils.containsIgnoreCase(resDesc,templateDesc)){
 				    return true;

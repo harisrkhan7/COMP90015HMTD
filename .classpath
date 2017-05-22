@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
+<<<<<<< HEAD
 	<classpathentry kind="lib" path="/Users/HRK/Downloads/json-simple-1.1.1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/Users/HRK/Downloads/commons-lang3-3.5.jar"/>
 	<classpathentry kind="lib" path="/Users/HRK/Downloads/commons-validator-1.6.jar"/>
 	<classpathentry kind="lib" path="/Users/HRK/Downloads/commons-cli-1.4.jar"/>
+=======
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/tchanchokpong/Dropbox/Git/Java/json-simple-1.1.1.jar"/>
+	<classpathentry kind="lib" path="/home/tchanchokpong/Dropbox/Git/Java/commons-validator-1.6.jar"/>
+	<classpathentry kind="lib" path="/home/tchanchokpong/Dropbox/Git/Java/commons-lang3-3.5.jar"/>
+	<classpathentry kind="lib" path="/home/tchanchokpong/Dropbox/Git/Java/commons-cli-1.4.jar"/>
+>>>>>>> 54cdee5e821f32c29b3b7bf8d4cff7299c41d040
 	<classpathentry kind="output" path="bin"/>
 </classpath>
