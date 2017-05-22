@@ -14,21 +14,21 @@ import org.apache.commons.cli.ParseException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import Server.Server;
+import Server.ObjectServer;
 import Server.ServerTCP;
 
 public class ArgumentParser {
 	private CommandLine commandLine;
 	private String[] args;
 	private String command;
-	Resource tempResource;
-	ArrayList<Server> ServerList;
+	ResourceClient tempResource;
+	ArrayList<ObjectServer> ServerList;
 	public ArgumentParser(String[] argument)
 	{
 		command = " ";
 		args = argument;
-		ServerList = new ArrayList<Server>();
-		tempResource = new Resource(null,null,"test");
+		ServerList = new ArrayList<ObjectServer>();
+		tempResource = new ResourceClient(null,null,"test");
 	}
 	void parseInput() throws NumberFormatException{
 		Options options = new Options();
@@ -115,8 +115,17 @@ public class ArgumentParser {
 	    uri.setRequired(false);
 	    options.addOption(uri);
 	    
-	    
-	    	    
+		Option unsubscribe = new Option("unsubscribe", false, "query for resources on server");
+		unsubscribe.setRequired(false);
+		options.addOption(unsubscribe);
+
+		Option subscribe = new Option("subscribe", false, "query for resources on server");
+		subscribe.setRequired(false);
+		options.addOption(subscribe);
+
+        Option id = new Option("id", true,"subscription id");
+        owner.setRequired(true);
+        options.addOption(id);
 	    
 	    CommandLineParser commandLineParser = new DefaultParser();
 	    HelpFormatter helpFormatter = new HelpFormatter();
@@ -130,10 +139,11 @@ public class ArgumentParser {
 	     System.exit(1);
 	    }
 
-	    String[] allCMD = {"publish","share","remove","query","fetch","exchange"};
+	    String[] allCMD = {"publish","share","remove","query","fetch",
+	    		"exchange","subscribe","unsubscribe"};
 	    
 	    int count = 0;
-	    for (int i = 0; i < 6; ++i){
+	    for (int i = 0; i < allCMD.length; ++i){
 		  if (commandLine.hasOption(allCMD[i])) {
 			command = allCMD[i].toUpperCase();
 			count++;
@@ -154,6 +164,7 @@ public class ArgumentParser {
 		case "REMOVE":
 		case "QUERY":
 		case "FETCH":
+		case "SUBSCRIBE":
 			updateTempResource();
 			break;
 		case "EXCHANGE":
@@ -186,6 +197,12 @@ public class ArgumentParser {
 			JSONArray ex = serverListToJSON();
 			tempJSONObject.put("serverList", ex);
 			break;
+		case  "SUBSCRIBE":
+			JSONObject sf = tempResource.toJSON();
+			String id=checkId();
+            tempJSONObject.put("id",id);
+			tempJSONObject.put("resourceTemplate", sf);
+			break;
 		default:
 			
 			break;
@@ -200,6 +217,20 @@ public class ArgumentParser {
 		
 	}
 	
+	private String checkId()
+	{
+		String id=null;
+		if(commandLine.hasOption("id"))
+        {
+		  id=commandLine.getOptionValue("id");
+        }
+		else 
+		{
+			System.out.println("Subscription command needs id");
+			System.exit(1);
+		}
+		return id;
+	}
 	private void updateTempResource()
 	{
 		String name = getValue("name");
@@ -211,8 +242,8 @@ public class ArgumentParser {
 		String host = getValue("host");
 		int port = Integer.parseInt(commandLine.getOptionValue("port"));
 		System.out.println("host:"+host+"port"+port);
-		Server ezserver = new Server(host,port);
-		tempResource = new Resource(name,tags,description,uri,
+		ObjectServer ezserver = new ObjectServer(host,port);
+		tempResource = new ResourceClient(name,tags,description,uri,
 				channel, owner,ezserver);	
 	}
 	private void updateServerList() throws NumberFormatException
@@ -222,7 +253,7 @@ public class ArgumentParser {
 		{
 			if(s.contains(":"))
 			{
-			Server temp = new Server(s.split(":")[0] , Integer.parseInt(s.split(":")[1]));
+			ObjectServer temp = new ObjectServer(s.split(":")[0] , Integer.parseInt(s.split(":")[1]));
 			ServerList.add(temp);
 			}
 		}
@@ -231,7 +262,7 @@ public class ArgumentParser {
 	private JSONArray serverListToJSON()
 	{
 		JSONArray tempArray = new JSONArray();
-		for(Server s:ServerList)
+		for(ObjectServer s:ServerList)
 		{
 			JSONObject tempObject = null;
 			if( s!= null )
@@ -240,7 +271,7 @@ public class ArgumentParser {
 				tempObject.put("hostname", s.getHostname());
 				tempObject.put("port", s.getPortString());
 				tempArray.add(tempObject);
-				System.out.print(tempObject.toString());
+//				System.out.print(tempObject.toString());
 			}
 		}
 		return tempArray;	

@@ -17,7 +17,25 @@ public class Connection extends Thread {
 	  VerifyRequestObject verify;
 	  Response reply;
 	  boolean debug;
-	  public Connection (Socket aClientSocket, Services aS,boolean debug) {
+	  String cmdText;
+	  int hits;
+	  public void addHit()
+	  {
+		  hits++;
+	  }
+	  /**
+	 * @return the hits
+	 */
+	public int getHits() {
+		return hits;
+	}
+	/**
+	 * @param hits the hits to set
+	 */
+	public void setHits(int hits) {
+		this.hits = hits;
+	}
+	public Connection (Socket aClientSocket, Services aS,boolean debug) {
 	    try {
 	    	  this.debug = debug;
 	    	  availableServices = aS;
@@ -27,21 +45,28 @@ public class Connection extends Thread {
 	      parser = new JSONParser();
 	      verify = new VerifyRequestObject();
 	      reply = null;
+	      cmdText = " ";
+	      hits = 0;
 	    } catch(IOException e) {
 	       System.out.println("Connection:"+e.getMessage());
 	} 
 	    }
 	public void run(){
-		     boolean waitForMessage = false;     
+		System.out.println("Client Connected!"); 
+			boolean waitForMessage = false;     
 		     try {
 		     do
 			{	    	
 					waitForMessage = serveClient();
-				
+					if(!cmdText.equals("UNSUBSCRIBE") && waitForMessage == false)
+				     	{
+						send(reply);
+						if(cmdText.equals("SUBSCRIBE"))
+							waitForMessage = true;
+//							System.out.println("Waiting for unsubscribe");
+				     	}
 			}while(waitForMessage == true);
-			send(reply);
-			
-			} catch (ParseException e){
+		     } catch (ParseException e){
 				reply = new Response(false,"Invalid Resource Template");
 			}catch (IOException e) {
 				e.printStackTrace();
@@ -52,13 +77,13 @@ public class Connection extends Thread {
 		boolean result = true;
 		 if(in.available() > 0){
 	    		// Attempt to convert read data to JSON
-			 System.out.println("server reading data from client ");
 	    	 	JSONObject command = (JSONObject) parser.parse(in.readUTF());
 	    	 	if(debug)
-	    		System.out.println("COMMAND RECEIVED: "+command.toJSONString());		
+	    		System.out.println("Received: "+command.toJSONString());		
 	    		if(verify.existsCommand(command))
 	  		{
-	    			String cmdText = command.get("command").toString();
+	    			cmdText = command.get("command").toString();
+	    			synchronized(verify){
 	    			if(verify.checkResource(command, cmdText))
 	    			{
 	    				performOperation(command);
@@ -67,12 +92,14 @@ public class Connection extends Thread {
 	    			{
 	    				reply = verify.getMissingResponse(cmdText);
 	    			}
+	    			}
 	  		}
 	  		else
 	  		{
 	  			reply = new Response(false,"Command missing");
 	  		}
-	    		result = false;
+	    			result = false;
+	    		
 	  	}
 		return result;
 	}
@@ -87,44 +114,51 @@ public class Connection extends Thread {
 		switch(commandText)
 		{
 		case "FETCH": 
-			System.out.println("FETCH COMMAND RECEIVED");//debug
-			reply = availableServices.fetch(new Resource(command,commandText), out);
+//			System.out.println("FETCH COMMAND RECEIVED");//debug
+			reply = availableServices.fetch(new ResourceServer(command,commandText), out);
 			break;
 		case "QUERY":
-			System.out.println("QUERY COMMAND RECEIVED");//debug
-			boolean relay = Parameters.RELAY;
-			String relayText;
-			if(command.containsKey("relay"))
-				{
-				relayText = command.get("relay").toString();
-				if(relayText.equals("true"))
-				{
-					relay = true;
-				}
-				else{
-					relay = false;
-				}
-				}
-			Resource temp = new Resource(command,commandText);
+//			System.out.println("QUERY COMMAND RECEIVED");//debug
+			boolean relay;
+			relay = getRelay(command);
+			ResourceServer temp = new ResourceServer(command,commandText);
 			reply = availableServices.
 					query(relay, temp);
 			break;
 		case "PUBLISH":
-			System.out.println("PUBLISH COMMAND RECEIVED");//debug
-			reply = availableServices.publish(new Resource(command,commandText));
+//			System.out.println("PUBLISH COMMAND RECEIVED");//debug
+			reply = availableServices.publish(new ResourceServer(command,commandText));
+			if(reply.getResponse().equals("success"))
+			{	
+				new SendSubscribe(availableServices,new ResourceServer(command, commandText))
+				.start();
+			}
 			break;	
 		case "SHARE":
-			System.out.println("SHARE COMMAND RECEIVED");//debug
+//			System.out.println("SHARE COMMAND RECEIVED");//debug
 			reply = availableServices.share(command.get("secret").toString(),
-					new Resource(command,commandText));
+					new ResourceServer(command,commandText));
 			break;	
 		case "REMOVE":
-			System.out.println("REMOVE COMMAND RECEIVED");//debug
-			reply = availableServices.remove(new Resource(command,commandText));
+//			System.out.println("REMOVE COMMAND RECEIVED");//debug
+			reply = availableServices.remove(new ResourceServer(command,commandText));
 			break;	
 		case "EXCHANGE":
-			System.out.println("EXCHANGE COMMAND RECEIVED");//debug
+//			System.out.println("EXCHANGE COMMAND RECEIVED");//debug
 			reply = initiateExchange(command);
+			break;
+		case "SUBSCRIBE":
+			System.out.println("SUBSCRIBE COMMAND RECEIVED");
+			String Id = getId(command);
+			boolean subscribeRelay = getRelay(command);
+			reply = availableServices.Subscribe(this, new ResourceServer(command, commandText), 
+					Id, subscribeRelay);
+			hits += reply.getResourceList().size();
+			break;
+		case "UNSUBSCRIBE":
+			System.out.println("UNSUBSCRIBE COMMAND RECEIVED");
+			String ID = getId(command);
+			availableServices.UnSubscribe(this, ID);
 			break;
 		default:
 			reply =  new Response(false,"invalid command");
@@ -134,10 +168,14 @@ public class Connection extends Thread {
 		  }catch (ParseException e){
 			  reply = new Response(false, "invalid resourceTemplate");
 		  }
-		catch (URISyntaxException | IOException e) {
+		catch (URISyntaxException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Invalid Input");
 			}
+		catch (IOException e)
+		{
+			System.out.println("Client Disconnected!");
+		}
 	}
 	Response initiateExchange(JSONObject command) throws ParseException, IOException
 	{
@@ -153,15 +191,39 @@ public class Connection extends Thread {
 		}
 		return reply;
 	}
+	void sendJSON(JSONObject toSend) throws IOException
+	{
+		out.writeUTF(toSend.toJSONString());
+		if(debug)
+			{
+			System.out.println(toSend.toJSONString());
+			}
+		out.flush();
+	}
+	void sendResource(ResourceServer toSend) throws IOException
+	{
+		JSONObject temp = toSend.toJSON();
+		out.writeUTF(temp.toJSONString());
+		hits++;
+		if(debug)
+			{
+			System.out.println(temp.toJSONString());
+			}
+		out.flush();
+	}
 	void send(Response toSend) throws IOException
 	{
 		
 		if(toSend != null)
 		{
 		JSONObject reply = toSend.toJSON();
+		if(toSend.getId()!=null)
+		{
+			reply.put("id", toSend.getId());
+		}
 		out.writeUTF(reply.toJSONString());
 		if(debug)
-		System.out.println(reply.toString());
+		System.out.println("Sent:"+reply.toString());
 		
 		if(toSend.responseListIsEmpty() == false)
 		{
@@ -176,16 +238,24 @@ public class Connection extends Thread {
 				if(debug)
 					System.out.println(j.toString());
 			}
-			
-			temp = new JSONObject();
-			temp.put("resultSize", iterator);
-			out.writeUTF(temp.toJSONString());
-			out.flush();
+			if(cmdText.equals("SUBSCRIBE")==false)
+			{
+				temp = new JSONObject();
+				temp.put("resultSize", iterator);
+				out.writeUTF(temp.toJSONString());
+				if(debug)
+				{
+					System.out.println("Sent:"+temp.toString());
+				}
+				out.flush();
+			}
 		}
 		else {
 			out.writeUTF(reply.toJSONString());
 			if(debug)
+				{
 				reply.toJSONString();
+				}
 			out.flush();
 		}
 		}
@@ -194,6 +264,41 @@ public class Connection extends Thread {
 	JSONArray getList(JSONObject command) throws IOException{
 		JSONArray list = (JSONArray) command.get("serverList");
 		return list;
+	}
+	boolean getRelay(JSONObject command){
+		String relayText;
+		boolean relay = Parameters.RELAY;
+		if(command.containsKey("relay"))
+		{
+		relayText = command.get("relay").toString();
+		if(relayText.equals("true"))
+		{
+			relay = true;
+		}
+		else{
+			relay = false;
+		}
+		}
+		return relay;
+	}
+	
+	String getId(JSONObject command){
+		String id = null;
+		if(command.containsKey("id")){
+			if(command.get("id")!=null)
+			{
+			id = command.get("id").toString();
+			}
+		}
+		return id;
+	}
+	/*
+	 * To close the input and output data streams of the connection
+	 */
+	void close() throws IOException
+	{
+		in.close();
+		out.close();
 	}
 		}
 

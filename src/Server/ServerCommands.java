@@ -2,6 +2,8 @@ package Server;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Random;
+import java.util.UUID;
 
 public class ServerCommands {
 	private InetAddress advertisedHostName;
@@ -47,10 +49,11 @@ public class ServerCommands {
 		
 	}
 	ServerCommands(){
+		Random portrandom = new Random();
 		this.setAdvertisedHostName(null);
 		this.setConnectionInterval(1000);
 		this.setExchangeInterval(600000);
-		this.setPort(4567);
+		this.setPort(portrandom.nextInt(65000));
 		this.secret = "abc1234";
 		this.debug = false;
 	}
@@ -68,7 +71,7 @@ public class ServerCommands {
 			this.advertisedHostName = InetAddress.getByName(advertisedHostName);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
-			System.out.println("Hostname to found. Using default hostname.");
+			System.out.println("Hostname not found. Using default hostname.");
 		}
 	}
 	/**

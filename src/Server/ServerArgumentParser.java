@@ -1,5 +1,6 @@
 package Server;
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -11,7 +12,7 @@ import org.apache.commons.cli.ParseException;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import Client.Resource;
+import Client.ResourceClient;
 public class ServerArgumentParser {
 	private CommandLine commandLine;
 	private String[] args;
@@ -83,8 +84,10 @@ public class ServerArgumentParser {
 		String secret;
 		if(commandLine.hasOption("secret"))
 			secret = commandLine.getOptionValue("secret");
-		else 
-			secret = "abcd1234";
+		else {
+			String uuid = UUID.randomUUID().toString();
+			secret = uuid.split("-")[0];
+		}
 		commands.setSecret(secret);
 		
 		boolean debug;

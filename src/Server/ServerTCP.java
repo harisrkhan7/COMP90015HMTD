@@ -11,14 +11,16 @@ public class ServerTCP {
 	Timer TimedExchange;
 	RequestCheck checkRequest;
 	int exchangeInterval;
+	int connectionInterval;
 	InetAddress hostname;
 	boolean debug;
+	String secret;
 	public ServerTCP(ServerCommands command)
 	{
 		debug = command.debug;
 		exchangeInterval = command.getExchangeInterval();
-		int connectionInterval = command.getConnectionInterval();
-		String secret = command.getSecret();
+		connectionInterval = command.getConnectionInterval();
+		secret = command.getSecret();
 		hostname = command.getAdvertisedHostName();
 		serverPort = command.getPort();
 		TCPService = new Services(secret);
@@ -29,24 +31,26 @@ public class ServerTCP {
 	}
 	public void start()
 	{
-		System.out.println("Server Running");
+
 		TimedExchange.scheduleAtFixedRate(remove, Parameters.PERIODIC_REMOVE_START_DELAY, Parameters.PERIODIC_REMOVE_INTERVAL);
-		TimedExchange.scheduleAtFixedRate(exchange, Parameters.EXCHANGE_START_DELAY, Parameters.EXCHANGE_INTERVAL);
+		TimedExchange.scheduleAtFixedRate(exchange, Parameters.EXCHANGE_START_DELAY, exchangeInterval);
 		try
 		{
 			listenSocket = new ServerSocket(serverPort, 0 , hostname);
 			BroadcastServer temp = 
 			new BroadcastServer(listenSocket.getInetAddress().toString(),listenSocket.getLocalPort());
+			System.out.println("Server Running");
 			System.out.println(temp.getBroadcastServer());
+			System.out.println("Secret:"+secret);
 			while(true) {
-				System.out.println("Server listening for a connection");
 				Socket clientSocket = listenSocket.accept();
-				System.out.println("Received connection ");
-				System.out.println(clientSocket.getInetAddress().toString());
+				synchronized(checkRequest)
+				{
 				if(checkRequest.verifyClient(clientSocket))
 				{
 					Connection c = new Connection(clientSocket, TCPService, debug);
 					c.start();
+				}
 				}
 			}
 		}

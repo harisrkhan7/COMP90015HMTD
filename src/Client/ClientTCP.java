@@ -19,7 +19,9 @@ public class ClientTCP extends Thread {
 	DataInputStream in;
 	DataOutputStream out;
 	JSONObject newCommand;
+	GetInput userInput;
 	boolean debug;
+	String subscribeId;
 	ClientTCP(JSONObject cmd, int port, InetAddress server, boolean debug)
 	{
 		try{
@@ -29,9 +31,15 @@ public class ClientTCP extends Thread {
 		this.newCommand = cmd;
 		this.parser = new JSONParser();
 		ClientSocket = new Socket(server, serverPort);
-	    System.out.println("Connection Established");
+//	    System.out.println("Connection Established");//debug
 	    this.in = new DataInputStream( ClientSocket.getInputStream());
 	    this.out =new DataOutputStream( ClientSocket.getOutputStream());
+	    this.subscribeId = null;
+	    if(newCommand.containsKey("id"))
+	    {
+	    	this.subscribeId = newCommand.get("id").toString();
+	    }
+	    this.userInput = new GetInput(this.out,subscribeId);
 		}catch(IOException e){}
 	}
 	public void run()
@@ -71,7 +79,8 @@ public class ClientTCP extends Thread {
 }
 	boolean checkCommand(String command, String response)
 	  {
-		return (response.equals("success") && (command.equals("QUERY")||command.equals("FETCH")));
+		return (response.equals("success") && (command.equals("QUERY")||command.equals("FETCH")
+				||command.equals("SUBSCRIBE")));
 	  }
 	JSONObject getResponse() throws NullPointerException, IOException, ParseException
 	{
@@ -106,7 +115,11 @@ public class ClientTCP extends Thread {
 			switch(cmd)
 			{
 			case "QUERY":
-				waitForQuery(wait);
+				waitForJSONObjects(wait);
+				break;
+			case "SUBSCRIBE":
+				userInput.start();
+				waitForJSONObjects(wait);
 				break;
 			case "FETCH":
 				try {
@@ -120,7 +133,7 @@ public class ClientTCP extends Thread {
 				}
 			}
 		}
-	void waitForQuery(boolean wait) throws IOException, ParseException
+	void waitForJSONObjects(boolean wait) throws IOException, ParseException
 	{
 		JSONObject response = new JSONObject();
 		String data;
@@ -133,17 +146,18 @@ public class ClientTCP extends Thread {
 				data = in.readUTF();
 				// Attempt to convert read data to JSON
 				response = (JSONObject) parser.parse(data);
-				System.out.println(response.toString());
+				System.out.println("RECEIVED:"+response.toString());
     			}
 		}while(response.containsKey("resultSize") == false);
 		}
 
 	}
+
 	void waitForFetch() throws IOException, ParseException, URISyntaxException
 	{
 			JSONObject response = getResponse();
 			if(debug)
-			{System.out.println(response.toString());}
+			{System.out.println("RECEIVED:"+response.toString());}
 			String tempFileName = response.get("uri").toString();
 			URI uri = new URI(tempFileName);
 			String tempPath = uri.getPath();
@@ -166,7 +180,7 @@ public class ClientTCP extends Thread {
 	// Variable used to read if there are remaining size left to read.
 	int num;
 	
-	System.out.println("Downloading "+fileName+" of size "+fileSizeRemaining);
+//	System.out.println("Downloading "+fileName+" of size "+fileSizeRemaining);
 	while((num=in.read(receiveBuffer))>0){
 		// Write the received bytes into the RandomAccessFile
 		downloadingFile.write(Arrays.copyOf(receiveBuffer, num));

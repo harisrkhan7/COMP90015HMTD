@@ -8,10 +8,10 @@ public class PeriodicExchange extends TimerTask{
 	}
 	public void run()
 	{
-		System.out.println("Exchange Executing");
+//		System.out.println("Exchange Executing");
 		synchronized(TCPService){
 		TCPService.exchange();
 		}
-		System.out.println("Exchange Executed");
+//		System.out.println("Exchange Executed");
 	}
 }

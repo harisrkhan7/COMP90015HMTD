@@ -8,7 +8,8 @@ import org.json.simple.JSONObject;
 public class Response {
 	private String response;
 	private String errorMessage;
-	private ArrayList<Resource> responseList;
+	private String id;
+	private ArrayList<ResourceServer> responseList;
 	public Response(boolean response, String errorMessage)
 	{
 		if(response == true)
@@ -16,19 +17,19 @@ public class Response {
 		else
 			this.response = "error";
 		this.errorMessage = errorMessage;
-		this.responseList = new ArrayList<Resource>();
+		this.responseList = new ArrayList<ResourceServer>();
 	}
 	public Response()
 	{
 		this.response = null;
 		this.errorMessage = null;
-		this.responseList = new ArrayList<Resource>();
+		this.responseList = new ArrayList<ResourceServer>();
 	}
-	public ArrayList<Resource> getResourceList(){
-	      return new ArrayList<Resource>(responseList); // new copy
+	public ArrayList<ResourceServer> getResourceList(){
+	      return new ArrayList<ResourceServer>(responseList); // new copy
 	}
 	
-	public void setResourceList(ArrayList<Resource> responseList){
+	public void setResourceList(ArrayList<ResourceServer> responseList){
 	      this.responseList = responseList;
 	}
 	/**
@@ -84,7 +85,7 @@ public class Response {
 		if(responseList.isEmpty() == false)
     	{
     		int iterator = 0;
-    		for(Resource s:responseList)
+    		for(ResourceServer s:responseList)
     		{
     			iterator++;
     			JSONObject tempObject = s.toJSON();
@@ -97,9 +98,21 @@ public class Response {
 	}
 	public void printList()
 	{
-		for(Resource s:responseList)
+		for(ResourceServer s:responseList)
 		{
 			System.out.println(s.toString());
 		}
+	}
+	/**
+	 * @return the id
+	 */
+	public String getId() {
+		return id;
+	}
+	/**
+	 * @param id the id to set
+	 */
+	public void setId(String id) {
+		this.id = id;
 	}
 }

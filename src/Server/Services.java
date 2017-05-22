@@ -23,32 +23,33 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 public class Services {
-	private ArrayList<Server> ServerList;
-	private HashMap<String, Resource> ResourceList;
+	private ArrayList<Subscription> SubscriptionList;
+	private ArrayList<ObjectServer> ServerList;
+	private HashMap<String, ResourceServer> ResourceList;
 	private String secretServer;
 	private boolean debug;
 	/**
 	 * @return the serverList
 	 */
-	public ArrayList<Server> getServerList() {
+	public ArrayList<ObjectServer> getServerList() {
 		return ServerList;
 	}
 	/**
 	 * @param serverList the serverList to set
 	 */
-	public void setServerList(ArrayList<Server> serverList) {
+	public void setServerList(ArrayList<ObjectServer> serverList) {
 		ServerList = serverList;
 	}
 	/**
 	 * @return the resourceList
 	 */
-	public HashMap<String, Resource> getResourceList() {
+	public HashMap<String, ResourceServer> getResourceList() {
 		return ResourceList;
 	}
 	/**
 	 * @param resourceList the resourceList to set
 	 */
-	public void setResourceList(HashMap<String, Resource> resourceList) {
+	public void setResourceList(HashMap<String, ResourceServer> resourceList) {
 		ResourceList = resourceList;
 	}
 	/**
@@ -68,12 +69,125 @@ public class Services {
 		if(secret != null)
 		this.secretServer =secret;
 		debug = true;
-		ServerList = new ArrayList<Server>();
-		ResourceList = new HashMap<String, Resource>();
+		ServerList = new ArrayList<ObjectServer>();
+		ResourceList = new HashMap<String, ResourceServer>();
+		this.SubscriptionList = new ArrayList<Subscription>();
 		
 	}
-
-	public Response remove(Resource toRemove)
+	/* Adds a new item in the SubscriptionList 
+	 * @param c - the connection object for the client
+	 * @param r - the resource template
+	 * @param id - the id of the subscription by the client
+	 * @return - the response on successful addition. 
+	 */
+	public Response Subscribe(Connection c, ResourceServer r, String id, boolean relay)
+			throws UnknownHostException, IOException, ParseException
+	{
+//		System.out.println("In subscribe method");
+		Response response; 
+		synchronized(SubscriptionList)
+		{
+		Subscription toAdd = new Subscription(c, r, id);
+		if(relay)
+		{
+			ServerSubscription temp;
+			for(ObjectServer s:ServerList)
+			{
+				temp = new ServerSubscription(s, r,c,id);
+				toAdd.getSubscribedServers().add(temp);
+				temp.start();
+			}
+		}
+		SubscriptionList.add(toAdd);
+		}
+		response = query(false, r);
+		if(response.getResponse().equals("error"))
+		{
+			response = new Response(true, null);
+		}
+		response.setId(id);
+//		System.out.println("Leaving subscribe method");
+		return response;
+	}
+	/* Remove an item from the subscription list. 
+	 * @param c - the connection object for the client
+	 * @param id - the id of the subscription by the client
+	 * @return - the response on successful deletion
+	 */
+	public void UnSubscribe(Connection c, String id) throws IOException
+	{
+		Response response;
+		synchronized(SubscriptionList)
+		{
+			removeFromSubscriptionList(c,id);
+			boolean closeConnection = closeConnection(c);
+			if(closeConnection)
+			{
+				JSONObject temp = new JSONObject();
+				temp.put("resultSize", c.getHits());
+				
+				try {
+					c.sendJSON(temp);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+		
+	}
+	/*
+	 * 
+	 */
+	public void sendSubscribe(ResourceServer toCheck)
+	{
+		for(int i=0;i<SubscriptionList.size();i++)
+		{
+			System.out.println("Iterating Subscription List:"+i);
+			if(matchResources(SubscriptionList.get(i).getResourceTemplate(),toCheck)){
+				try {
+					System.out.println("Matched with connection:"+SubscriptionList.get(i));
+					toCheck.setOwner("*");
+					SubscriptionList.get(i).getConnection().sendResource(toCheck);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	void removeFromSubscriptionList(Connection c, String id) throws IOException
+	{
+		synchronized(SubscriptionList)
+		{
+		for(int i=0; i<SubscriptionList.size();i++)
+		{
+			System.out.println("id:"+SubscriptionList.get(i).getId());
+			if(SubscriptionList.get(i).getConnection()==c 
+					&& SubscriptionList.get(i).getId().equals(id))
+			{
+				for(ServerSubscription s:SubscriptionList.get(i).getSubscribedServers())
+				{
+					s.Unsubscribe();
+				}
+				SubscriptionList.remove(i);
+			}
+		}
+		}
+	}
+	boolean closeConnection(Connection c)
+	{
+		boolean closeConnection = true;
+		for(int i=0; i<SubscriptionList.size();i++)
+		{
+			if(SubscriptionList.get(i).getConnection()==c)
+			{
+				closeConnection = false;
+			}
+		}
+		return closeConnection;
+	}
+	public Response remove(ResourceServer toRemove)
 	{
 		String key=toRemove.getOwner()+toRemove.getChannel()+toRemove.getUri();
 		Response response;
@@ -91,7 +205,7 @@ public class Services {
 	}
 
 
-	public Response publish(Resource res) throws URISyntaxException{	
+	public Response publish(ResourceServer res) throws URISyntaxException{	
 //	      if (resourceMissing(res)) {
 //		    return new Response(false, "missing resource");
 //	      }
@@ -116,11 +230,11 @@ public class Services {
 	      }
 	}
 	
-	public boolean resourceMissing(Resource res){
+	public boolean resourceMissing(ResourceServer res){
 	      return false;
 	}
 	
-	public boolean uriInvalid(Resource res){
+	public boolean uriInvalid(ResourceServer res){
 	      try{
 		    @SuppressWarnings("unused")
 		  URI checkUri = new URI(res.getUri());
@@ -132,7 +246,7 @@ public class Services {
 	      }
 	}
 	
-	public boolean uriIncorrect(Resource res, String cmd){
+	public boolean uriIncorrect(ResourceServer res, String cmd){
 	      try {
 		    
 		  URI checkUri = new URI(res.getUri());
@@ -152,7 +266,7 @@ public class Services {
 	     
 	}
 	
-	public boolean resourceInvalid(Resource res){
+	public boolean resourceInvalid(ResourceServer res){
 	      if ( (res.getUri().equals("")) ||
 	      (res.getEzServer()==null) ||
 	      (res.getOwner().equals("*")) ){
@@ -163,7 +277,7 @@ public class Services {
 	}
 	
 
-	public boolean invalidChannelOwner(Resource res){
+	public boolean invalidChannelOwner(ResourceServer res){
 	      String OCU = res.getOwner()+res.getChannel()+res.getUri();
 	      String CU = res.getChannel()+res.getUri();
 	      
@@ -184,7 +298,7 @@ public class Services {
 	      return false;
 	}
 	
-	public boolean duplicateResource(Resource res){
+	public boolean duplicateResource(ResourceServer res){
 	      String key = res.getOwner()+res.getChannel()+res.getUri();
 	      List<String> l = new ArrayList<String>(ResourceList.keySet());
 	      for(String listItem : l){
@@ -196,7 +310,7 @@ public class Services {
 	      return false;
 	}
 
-	public Response share(String secret, Resource res) throws URISyntaxException
+	public Response share(String secret, ResourceServer res) throws URISyntaxException
 	{	
 	      if (incorrectSecret(secret)){
 		    return new Response(false, "incorrect secret");
@@ -231,17 +345,17 @@ public class Services {
 		return false;
 	}
 	
-	public Response query(Boolean relay, Resource toQuery) throws 
+	public Response query(Boolean relay, ResourceServer toQuery) throws 
 	UnknownHostException,
 	IOException, 
 	ParseException
 	{    	Response queryResponse = null;
-	      	ArrayList<Resource> matched = getEntry(ResourceList, toQuery);
+	      	ArrayList<ResourceServer> matched = getEntry(ResourceList, toQuery);
 		//relay to be implemented properly
 		if(relay){
 			   // make connection
-		      ArrayList<Resource> temp = new ArrayList<Resource>();  
-		      for(Server sv : ServerList){
+		      ArrayList<ResourceServer> temp = new ArrayList<ResourceServer>();  
+		      for(ObjectServer sv : ServerList){
 			    // send query
 			    try{
 				  temp = relaySend(toQuery, sv);
@@ -267,7 +381,7 @@ public class Services {
 		}
             		return queryResponse;
 	}
-	public Response fetch(Resource toFetch, DataOutputStream out) throws  IOException{
+	public Response fetch(ResourceServer toFetch, DataOutputStream out) throws  IOException{
 		Response toReturn = null;
 		URI uri = null;
 		try {
@@ -295,13 +409,13 @@ public class Services {
 		return toReturn;  
 		
 	}
-	ArrayList<Resource> receiveQueryResources(DataInputStream in, JSONParser tempParser) throws IOException, ParseException
+	ArrayList<ResourceServer> receiveQueryResources(DataInputStream in, JSONParser tempParser) throws IOException, ParseException
 	{
 		
 	    String data;
 	    JSONObject tempResponse = new JSONObject();
 	    VerifyRequestObject verifier = new VerifyRequestObject();
-	    ArrayList<Resource> toReturn = new ArrayList<Resource>();
+	    ArrayList<ResourceServer> toReturn = new ArrayList<ResourceServer>();
 	    do{
 			data = in.readUTF();
 			// Attempt to convert read data to JSON
@@ -309,10 +423,10 @@ public class Services {
 			
 			
 			if (verifier.checkTemplate(tempResponse)){
-			      Resource toAdd = new Resource(tempResponse,"QUERY");
+			      ResourceServer toAdd = new ResourceServer(tempResponse);
 			      toAdd.setOwner("*");
 			      toReturn.add(toAdd);
-			      System.out.println("Resource added to list");
+			      System.out.println("Resource added to list" + toReturn);
 			}
 			if (debug){
 			System.out.println("Received:"+tempResponse.toString());
@@ -321,9 +435,9 @@ public class Services {
 		} while (tempResponse.containsKey("resultSize") == false);
 	    return toReturn;
 	}
-    ArrayList<Resource> relaySend(Resource toQuery, Server sv) throws UnknownHostException, IOException, ParseException
+    ArrayList<ResourceServer> relaySend(ResourceServer toQuery, ObjectServer sv) throws UnknownHostException, IOException, ParseException
     {
-    	ArrayList<Resource> toReturn = new ArrayList<Resource>();
+    	ArrayList<ResourceServer> toReturn = new ArrayList<ResourceServer>();
     	JSONObject relayQuery = toQuery.toJSON();
 	JSONParser tempParser = new JSONParser();
     	Socket clientSocket;
@@ -349,6 +463,7 @@ public class Services {
     }
     // receiving query and see if success
     JSONObject received = (JSONObject) tempParser.parse(in.readUTF());
+    
     if(debug)
     {
     	System.out.println("Received:"+received.toString());
@@ -363,7 +478,7 @@ public class Services {
     clientSocket.close();
     return toReturn;
     }
-	private Response sendFile(String fileName, DataOutputStream out, Resource toFetch) throws IOException
+	private Response sendFile(String fileName, DataOutputStream out, ResourceServer toFetch) throws IOException
 	{
 		
 		File f = new File(fileName);
@@ -410,8 +525,8 @@ public class Services {
 		return null;
 	}
 
-	public boolean checkForFetch(Resource toFetch){
-	      for (Entry<String, Resource> entry : ResourceList.entrySet()){
+	public boolean checkForFetch(ResourceServer toFetch){
+	      for (Entry<String, ResourceServer> entry : ResourceList.entrySet()){
 		    if (entry.getValue().getChannel().equals(toFetch.getChannel()) &&
 			entry.getValue().getUri().equals(toFetch.getUri())){
 			  return true;
@@ -420,8 +535,8 @@ public class Services {
 	      return false;
 	}
 	
-	 public boolean checkifduplicate(ArrayList<Server> list, Server toCheck){
-	        for(Server x:list){
+	 public boolean checkifduplicate(ArrayList<ObjectServer> list, ObjectServer toCheck){
+	        for(ObjectServer x:list){
 	            if(x.getHostname().equals(toCheck.getHostname())&& x.getPort()==toCheck.getPort()){
 	                return true;
 	            }
@@ -486,12 +601,12 @@ public class Services {
 				Response response;
 		        String host=null;
 		        int port=0;
-		        Server serv_to_add=null;
+		        ObjectServer serv_to_add=null;
 		        for(int i=0;i<list.size();i++){
 		            JSONObject x=(JSONObject) list.get(i);//Getting the server object as a JSON
 		            host=x.get("hostname").toString();//Extracting the host name
 		            port=Integer.parseInt(x.get("port").toString());//Extracting the port
-		            serv_to_add=new Server(host,port);//Converting to a Server object
+		            serv_to_add=new ObjectServer(host,port);//Converting to a Server object
 		            if(!(checkifduplicate(ServerList,serv_to_add))){//if server is not already on the list
 		                //System.out.println(ServerList.indexOf(serv_to_add));//Debug
 		                 ServerList.add(serv_to_add);
@@ -511,7 +626,7 @@ public class Services {
 					{
 			            //Selecting a random server
 			            index = random.nextInt(listSize);
-					    Server serv=ServerList.get(index);
+					    ObjectServer serv=ServerList.get(index);
 			            System.out.println("Selected server: "+serv.getHostname()+":"+serv.getPort());
 			            try{	                
 			                JSONObject command = ServerListToJSON();
@@ -536,7 +651,7 @@ public class Services {
 
             //Creating the JSON to send
             command.put("command","EXCHANGE");
-            for(Server x : ServerList){
+            for(ObjectServer x : ServerList){
                 server = new JSONObject();
                 server.put("hostname",x.getHostname());
                 server.put("port",x.getPort());
@@ -546,7 +661,7 @@ public class Services {
             //Sending the JSON
             return command;
 		}
-		void sendExchange(JSONObject command, Server serv) throws UnknownHostException, IOException
+		void sendExchange(JSONObject command, ObjectServer serv) throws UnknownHostException, IOException
 		{
 		    //opening a socket
             Socket socket = new Socket(serv.getHostname(),serv.getPort());
@@ -554,22 +669,26 @@ public class Services {
             socket.setSoTimeout(timeout);
             DataInputStream in = new DataInputStream( socket.getInputStream());
             DataOutputStream out =new DataOutputStream( socket.getOutputStream());
-        		System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
+//        		System.out.println("Sending to: "+serv.getHostname()+serv.getPort());//Debug
             out.writeUTF(command.toJSONString());//send
+            if(debug)
+            {
+            	System.out.print("SENT:"+command.toString());
+            }
             String data = in.readUTF();   // read a line of data from the stream
-			System.out.println(data);
+//			System.out.println(data);
 			socket.close();
            // System.out.println("Exchange socket closed");//Debug	
         }
 
-		  public ArrayList<Resource> getEntry(HashMap<String, Resource> ResourceList,
-				  Resource templateResource){
+		  public ArrayList<ResourceServer> getEntry(HashMap<String, ResourceServer> ResourceList,
+				  ResourceServer templateResource){
 			    // initialize matching array to be return
-			    ArrayList<Resource> match = new ArrayList<Resource>();
-			    Resource resourcefromList = null;
-			    Resource tempResource = null;
+			    ArrayList<ResourceServer> match = new ArrayList<ResourceServer>();
+			    ResourceServer resourcefromList = null;
+			    ResourceServer tempResource = null;
 			    // Looping through the ResourceList
-			    for (Entry<String, Resource> entry : ResourceList.entrySet()){
+			    for (Entry<String, ResourceServer> entry : ResourceList.entrySet()){
 				  resourcefromList = entry.getValue();
 				  if (matchChannel(templateResource,resourcefromList) &&
 					      matchOwner(templateResource, resourcefromList) &&
@@ -577,11 +696,10 @@ public class Services {
 					      matchURI(templateResource, resourcefromList) &&
 					      matchNameDesc(templateResource,resourcefromList))
 				  {  
-					tempResource = new Resource(resourcefromList);
-					
+					tempResource = new ResourceServer(resourcefromList);
 					tempResource.setOwner("*");
 					match.add(tempResource);
-					System.out.println("MATCHED one resource, adding...");//debug
+//					System.out.println("MATCHED one resource, adding...");//debug
 				  }
 
 			    }
@@ -591,25 +709,25 @@ public class Services {
 	    
 	    
 		// Support method for the Query method
-			public boolean matchChannel(Resource res1, Resource res2){  
+			public boolean matchChannel(ResourceServer res1, ResourceServer res2){  
 				if (res1.getChannel().equals("")){
-					System.out.println("Channel Matched null");
+//					System.out.println("Channel Matched null");
 					return true;
 				}
 			      if (res1.getChannel().equals(res2.getChannel())){
-				    System.out.println("ChannelMatched");
+//				    System.out.println("ChannelMatched");
 				    return true;
 			      }
 			      return false;
 			}
 			
-			public boolean matchOwner(Resource res1, Resource res2){
+			public boolean matchOwner(ResourceServer res1, ResourceServer res2){
 				if (res1.getOwner().equals("")) {
-					System.out.println("Owner Matched null");
+//					System.out.println("Owner Matched null");
 					return true;
 							}
 				if (res1.getOwner().equals(res2.getOwner())){
-				    System.out.println("Owner matched");
+//				    System.out.println("Owner matched");
 				    return true;
 			      }
 			      
@@ -618,7 +736,7 @@ public class Services {
 			
 			// have to check that res1 tags are all in res2 tags
 			// or res2 have all the tags res1 have
-			public boolean matchTags(Resource res1, Resource res2){
+			public boolean matchTags(ResourceServer res1, ResourceServer res2){
 			      ArrayList<String> tagList1 = res1.getTags();
 			      
 			      if(tagList1.isEmpty()) return true;
@@ -626,8 +744,8 @@ public class Services {
 			      ArrayList<String> tagList2 = res2.getTags();
 //			      System.out.println("resource 1 is (the templateResource)" + res1.getTags().toString());
 //			      System.out.println("resource 2 is (the list resource)" + res2.getTags().toString());
-			      System.out.println(tagList1);
-			      System.out.println(tagList2);
+//			      System.out.println(tagList1);
+//			      System.out.println(tagList2);
 			      
 			      boolean match = false;
 			      for (String tag : tagList1){
@@ -639,22 +757,22 @@ public class Services {
 				    }
 				    if(match)
 				    {
-				    	System.out.println("there is match for " + tag);
+				    	return true;
 				    }
 				    else 
 				    	{
 				    	return false;
 				    	}
 			      }
-			      System.out.println("All Tags matches");
+//			      System.out.println("All Tags matches");
 			      return true;
 			}
 			
 			
-			public boolean matchURI(Resource template, Resource res){
+			public boolean matchURI(ResourceServer template, ResourceServer res){
 			      if(template.getUri().equals(""))
 			    	  {
-			    	  System.out.println("URI matched:null");
+//			    	  System.out.println("URI matched:null");
 			    	  return true;	      
 			    	  }
 			      String uriTemplate = template.getUri();
@@ -662,7 +780,7 @@ public class Services {
 
 			      
 			      if (uriTemplate.equals(resTemplate)){
-				    System.out.println("URI matched");
+//				    System.out.println("URI matched");
 				    return true;
 			      }
 			      return false;
@@ -670,14 +788,14 @@ public class Services {
 			
 
 			
-			public boolean matchNameDesc(Resource template, Resource res){
+			public boolean matchNameDesc(ResourceServer template, ResourceServer res){
 			      String templateName = template.getName();
 			      String resName = res.getName();
 			      String templateDesc = template.getDescription();
 			      String resDesc = res.getDescription();
 
 			      if(templateName.equals("") && templateDesc.equals("")){
-			    	  System.out.println("name and description are null");
+//			    	  System.out.println("name and description are null");
 				    return true;
 			      }
 			      
@@ -692,17 +810,28 @@ public class Services {
 			      }
 			      return false;
 			}
-
-
-	
+			
+			public boolean matchResources(ResourceServer template, ResourceServer b)
+			{
+				if (matchChannel(template,b) &&
+					      matchOwner(template, b) &&
+					      matchTags(template, b) && 
+					      matchURI(template, b) &&
+					      matchNameDesc(template,b)){
+					return true;
+				}
+				else{
+					return false;					
+				}
+			}
 	
 void printResourceList()
 {
     System.out.println("Below is the current resource list");
     
-	for (Map.Entry <String,Resource> entry : ResourceList.entrySet()){
+	for (Map.Entry <String,ResourceServer> entry : ResourceList.entrySet()){
 		String key = entry.getKey();
-		Resource r = entry.getValue();
+		ResourceServer r = entry.getValue();
 		System.out.println("Key is " + key);
 		System.out.println("Resource is " + r.toJSON().toString());
 	}
